@@ -6,6 +6,7 @@ sys.path.insert(0,os.fspath(Path(__file__).parents[1]))
 
 from Tools.numerical_iterator import *
 
+
 def nu_func(M, gamma):
     """
     Prandtl-Meyer function

@@ -1,0 +1,53 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{lmodern}
+\usepackage{multicol}
+\usepackage{enumitem} 
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{setspace}
+\usepackage{float}
+\usepackage{subcaption} 
+
+% tighten figure–equation spacing
+\setlength{\textfloatsep}{6pt plus 1pt minus 1pt}
+\setlength{\intextsep}{6pt plus 1pt minus 1pt}
+\setlength{\abovecaptionskip}{2pt}
+\setlength{\belowcaptionskip}{0pt}
+
+
+\title{Midtern Project: Supersonic Train Design}
+\author{Sophia Klymchuk \\
+\small Prof. Chacon \\ 
+\small ME-433: Rocket Science}
+
+
+\begin{document}
+\maketitle
+
+\section{Greedy Optimization}
+For this method of profile generation, we begin by choosing a single point on the left-hand-side of the bounded box. From there, we iteratively add points to the top and bottom surfaces of the shape, choosing at each step the point that results in the lowest step-wise cost function value. Inputs to this function are the choice of starting point, as well as the number of points to be added to the top and bottom surfaces.
+
+Firstly, given the number of desired points per surface, $N$, the spacing in the x-direction is discretized equally such that each point is $dx = \frac{1}{N}$. Then, iteration begins. At each step, the maximum turn angle $\theta$ allowed for an oblique shock is calculated based on the current Mach number, utilizing the Tau-Beta-Mach relation (see Equation \ref{eq:tbm}).
+\begin{equation}\label{eq:tbm}
+\tan\theta = 2\cot\beta 
+\left( \frac{M_1^2 \sin^2\beta - 1}{M_1^2 (\gamma + \cos 2\beta) + 2} \right)
+\end{equation}
+
+Using this $\theta_{max}$, the set of next-possible y-values is found for both the top and bottom surfaces. The top and bottom surfaces are bounded by the y-value of the starting point, as well as the constraint of $\theta_{max}$, as shown in Equation \ref{eq:next_y}.
+\begin{equation}\label{eq:next_y}
+    y_{i+1, top} \in \left[y_{start}, y_{i} + dx\sin(\theta_{max}) \right]; \quad y_{i+1, bot} \in \left[y_{i} - dx\sin(\theta_{max}, y_{start}) \right]
+\end{equation}
+
+These intervals are discretized and subjected to a stepwise cost function, as defined in Equation \ref{eq:step_cost}. Here, $D_{step}$ is the drag calculated for the shape up to and including the candidate next point. $N_{step}$ is the area-normalized number of trips required to deliver the payload up to the current bounded box. Since we have not yet generated the full shape, we use instead the area of the shape up to and including the candidate next point, and calculate the number of trips required to deliver this partial volume, given the current area. It should be noted that since this greedy function is applied at each step to the top and bottom candidate points separately, the areas utilized to calculate $N_{step}$ are also separated by top and bottom surfaces along the line defined by the first point.
+\begin{equation} \label{eq:step_cost}
+    C_{step} = 20 D_{step} N_{step}
+\end{equation}
+Knowing that the box height is 1 m, and that we are currently on step $i$ out of $N$ total steps, the equation used to calculate $N_{step}$ is given by Equation \ref{eq:N_step}. Note that $A_{step}$ is found via simple trapezoidal integration of the area under the top and bottom su
+\begin{align} \label{eq:N_step}
+    N_{step} = 2(ceiling(A_{tot}/A_{step}))-1 \\
+    A{step}
+\end{align}
+
+\end{document}

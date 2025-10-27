@@ -1,5 +1,10 @@
 import numpy as np
-from .constants import *
+
+import os, sys
+from pathlib import Path
+sys.path.insert(0,os.fspath(Path(__file__).parents[1]))
+
+from Tools.constants import *
 
 # FOR ALL BOUNDARY STUFF, LET THE UPPER BOUND BELONG TO THE LOWER LAYER
 

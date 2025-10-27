@@ -7,7 +7,7 @@ sys.path.insert(0,os.fspath(Path(__file__).parents[1]))
 
 from Tools.constants import *
 from Tools.standard_atmosphere import *
-from Tools.more_functions import *
+from Tools.misc_functions import *
 from Tools.numerical_iterator import *
 
 # So we know that we need T/P > 0.63956 K/Pa in order to get Kn>0.1 (free molecular flow)

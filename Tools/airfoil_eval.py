@@ -7,11 +7,12 @@ sys.path.insert(0,os.fspath(Path(__file__).parents[1]))
 
 from Tools.oblique_shock import *
 from Tools.expansion_fan import *
-from Tools.isentropic import P0_P
+from Tools.isentropic import P0_P, T0_T, rho0_rho
 from Tools.misc_functions import get_speed_of_sound
 from Tools.constants import *
 
 tol = 1e-8
+
 
 def get_surface_angles(x, y, aoa):
     """
@@ -62,11 +63,10 @@ def get_turn_angles(x, y, aoa, top=True):
     if not top:
         turn_angles = [-t for t in turn_angles]
 
-
     return turn_angles
 
 
-def get_Mach_numbers_p_ratios(M_in, gamma, top_thetas, bottom_thetas):
+def get_Mach_numbers_p_ratios(M_in, gamma, top_thetas, bottom_thetas, want_rho_temp=False):
     """
     Get the Mach number and P_n+1 / P_n at each turn on the airfoil surface
     Parameters:
@@ -84,63 +84,116 @@ def get_Mach_numbers_p_ratios(M_in, gamma, top_thetas, bottom_thetas):
     """
     M_top = [M_in]
     P_ratio_top = []
+    rho_ratio_top = []
+    T_ratio_top = []
     for theta in top_thetas:
-        # if last Mach number is already NaN, propagate NaNs forward
-        if np.isnan(M_top[-1]):
+        # if last Mach number is already NaN or <1, propagate NaNs forward
+        if np.isnan(M_top[-1]) or M_top[-1]<1.0:
             M_top.append(np.nan)
             P_ratio_top.append(np.nan)
             continue
 
-        if theta > (0+tol):  # oblique shock
+        if theta > (0 + tol):  # oblique shock
             theta_max, beta_max = get_theta_max_beta_from_tbm(M_top[-1], gamma)
             if theta >= theta_max:  # detached shock, no solution
                 M_top.append(np.nan)
                 P_ratio_top.append(np.nan)
+                rho_ratio_top.append(np.nan)
+                T_ratio_top.append(np.nan)
             else:
-                beta, P2_1, T2_1, M2, rho2_1 = mach_function(M_top[-1], gamma, theta)
+                #np.rad2deg(beta), P_out_P_in, T_out_T_in, M_out, rho_out_rho_in
+                beta, P2_1, T2_1, M2, rho2_1 = mach_function(M_top[-1], gamma, theta) 
                 M_top.append(M2)
                 P_ratio_top.append(P2_1)
-        elif theta < (0-tol):  # expansion fan
-            M2 = get_M2_from_nu(M_top[-1], gamma, -theta)  # -theta because theta is negative
+                rho_ratio_top.append(rho2_1)
+                T_ratio_top.append(T2_1)
+
+        elif theta < (0 - tol):  # expansion fan
+            try:
+                M2 = get_M2_from_nu(M_top[-1], gamma, -theta)  # -theta because theta is negative
+            except:
+                M_top.append(np.nan)
+                P_ratio_top.append(np.nan)
+                rho_ratio_top.append(np.nan)
+                T_ratio_top.append(np.nan)
+                continue
             M_top.append(M2)
             P02_P2 = P0_P(M_top[-1], gamma)
             P01_P1 = P0_P(M_top[-2], gamma)
             # isentropic expansion, P02 = P01. so P2/P1 = P01/P1 * 1/(P02/P2)
             P_ratio_top.append(P01_P1/P02_P2)  
+
+            T02_T2 = T0_T(M_top[-1], gamma)
+            T01_T1 = T0_T(M_top[-2], gamma)
+            T_ratio_top.append(T01_T1/T02_T2) 
+
+            rho02_rho2 = rho0_rho(M_top[-1], gamma)
+            rho01_rho1 = rho0_rho(M_top[-2], gamma)
+            rho_ratio_top.append(rho01_rho1/rho02_rho2) 
         else:  # theta == 0, no change in Mach number
             M_top.append(M_top[-1])
             P_ratio_top.append(1.0)
+            T_ratio_top.append(1.0)
+            rho_ratio_top.append(1.0)
     
-    M_bottom = [M_in]
-    P_ratio_bottom = []
+    M_bot = [M_in]
+    P_ratio_bot = []
+    rho_ratio_bot = []
+    T_ratio_bot = []
     for theta in bottom_thetas:
-        # if last Mach number is already NaN, propagate NaNs forward
-        if np.isnan(M_bottom[-1]):
-            M_bottom.append(np.nan)
-            P_ratio_bottom.append(np.nan)
+        # if last Mach number is already NaN or <1, propagate NaNs forward
+        if np.isnan(M_bot[-1]) or M_bot[-1]<1.0:
+            M_bot.append(np.nan)
+            P_ratio_bot.append(np.nan)
             continue
 
-        if theta > (0+tol):  # oblique shock
-            theta_max, beta_max = get_theta_max_beta_from_tbm(M_bottom[-1], gamma)
+        if theta > (0 + tol):  # oblique shock
+            theta_max, beta_max = get_theta_max_beta_from_tbm(M_bot[-1], gamma)
             if theta >= theta_max:  # detached shock, no solution
-                M_bottom.append(np.nan)
-                P_ratio_bottom.append(np.nan)
+                M_bot.append(np.nan)
+                P_ratio_bot.append(np.nan)
+                rho_ratio_bot.append(np.nan)
+                T_ratio_bot.append(np.nan)
             else:
-                beta, P2_1, T2_1, M2, rho2_1 = mach_function(M_bottom[-1], gamma, theta)
-                M_bottom.append(M2)
-                P_ratio_bottom.append(P2_1)
-        elif theta < (0-tol):  # expansion fan
-            M2 = get_M2_from_nu(M_bottom[-1], gamma, -theta)  # -theta because theta is negative
-            M_bottom.append(M2)
-            P02_P2 = P0_P(M_bottom[-1], gamma)
-            P01_P1 = P0_P(M_bottom[-2], gamma)
+                #np.rad2deg(beta), P_out_P_in, T_out_T_in, M_out, rho_out_rho_in
+                beta, P2_1, T2_1, M2, rho2_1 = mach_function(M_bot[-1], gamma, theta) 
+                M_bot.append(M2)
+                P_ratio_bot.append(P2_1)
+                rho_ratio_bot.append(rho2_1)
+                T_ratio_bot.append(T2_1)
+
+        elif theta < (0 - tol):  # expansion fan
+            try:
+                M2 = get_M2_from_nu(M_bot[-1], gamma, -theta)  # -theta because theta is negative
+            except:
+                M_bot.append(np.nan)
+                P_ratio_bot.append(np.nan)
+                rho_ratio_bot.append(np.nan)
+                T_ratio_bot.append(np.nan)
+                continue
+            M_bot.append(M2)
+            P02_P2 = P0_P(M_bot[-1], gamma)
+            P01_P1 = P0_P(M_bot[-2], gamma)
             # isentropic expansion, P02 = P01. so P2/P1 = P01/P1 * 1/(P02/P2)
-            P_ratio_bottom.append(P01_P1/P02_P2)  
+            P_ratio_bot.append(P01_P1/P02_P2)  
+
+            T02_T2 = T0_T(M_bot[-1], gamma)
+            T01_T1 = T0_T(M_bot[-2], gamma)
+            T_ratio_bot.append(T01_T1/T02_T2) 
+
+            rho02_rho2 = rho0_rho(M_bot[-1], gamma)
+            rho01_rho1 = rho0_rho(M_bot[-2], gamma)
+            rho_ratio_bot.append(rho01_rho1/rho02_rho2) 
         else:  # theta == 0, no change in Mach number
-            M_bottom.append(M_bottom[-1])
-            P_ratio_bottom.append(1.0)
+            M_bot.append(M_bot[-1])
+            P_ratio_bot.append(1.0)
+            T_ratio_bot.append(1.0)
+            rho_ratio_bot.append(1.0)
     
-    return np.array(M_top), np.array(P_ratio_top), np.array(M_bottom), np.array(P_ratio_bottom)
+    if want_rho_temp:
+        return np.array(M_top), np.array(P_ratio_top), np.array(rho_ratio_top), np.array(T_ratio_top), np.array(M_bot), np.array(P_ratio_bot), np.array(rho_ratio_bot), np.array(T_ratio_bot)
+    else:
+        return np.array(M_top), np.array(P_ratio_top), np.array(M_bot), np.array(P_ratio_bot)
 
 
 
@@ -187,86 +240,3 @@ def get_cL_and_cD(M_in, gamma, x, y, aoa, depth = 1, P_inf=P_sea, T_inf=300.0):
     cL = (2*L) / (rho_inf * V_inf**2 * A)
     cD = (2*D) / (rho_inf * V_inf**2 * A)
     return cL, cD
-
-
-
-        
-
-
-
-
-"""
-UNUSED OOPS
-"""
-def get_stag_pressure_ratios(M, gamma):
-    """
-    Get the pressure ratio at each state on the airfoil surface
-    Parameters:
-        M: Mach numbers at each state on surface (array)
-        gamma: ratio of specific heats (unitless)
-    Returns:
-        P0_P_arr: stagnation pressure ratios at each state on surface (array)
-    """
-    P0_P_arr = []
-    for M_i in M:
-            P0_P_arr.append(P0_P(M_i, gamma))
-    return np.array(P0_P_arr)
-
-
-def get_end_pressure_ratios(x, y, gamma, M_top, P_ratio_top, M_bottom, P_ratio_bottom):
-    P_n_ratio_top = np.prod(P_ratio_top)  # P_last_turn / P_in for top surface
-    P_n_ratio_bottom = np.prod(P_ratio_bottom)  # P_last_turn / P_in for bottom surface
-
-    # Now need to get P_n+1 / P_in. here we need to make sure that they converge at the trailing edge
-    # theta at inner trailing edge is 2arctan(dydx) at the end since symmmetrical airgoil
-    inner_theta_end = 2*np.degrees(np.arctan((y[-2]-y[-1]) / (x[-2]-x[-1])))
-
-    # Then, theta_top = turning angle for top stream from centerline
-    # theta_bot = turning angle for bottom stream from centerline, = inner_theta_end - theta_top
-    def f_n_to_end_top(theta_top): #returns P_end/Pin
-        P_end_in = P_n_ratio_top
-        if theta_top > 0:  # oblique shock
-            theta_max, beta_max = get_theta_max_beta_from_tbm(M_top[-1], gamma)
-            if theta_top >= theta_max:  # detached shock, no solution
-                return np.nan
-            else:
-                beta, P2_1, T2_1, M2 = mach_function(M_top[-1], gamma, theta_top)
-                P_end_in *= P2_1
-        elif theta_top < 0:  # expansion fan
-            M2 = get_M2_from_nu(M_top[-1], gamma, -theta_top)  # -theta because theta is negative
-            P02_P2 = P0_P(M2, gamma)
-            P01_P1 = P0_P(M_top[-1], gamma)
-            P_end_in *= P01_P1/P02_P2 # isentropic expansion, P02 = P01. so P2/P1 = P01/P1 * 1/ (P02/P2)
-        else:  # theta == 0, no change in Mach number
-            pass
-        return P_end_in
-        
-        
-    def f_n_to_end_bottom(theta_top):
-        theta_bottom = inner_theta_end-theta_top
-        P_end_in = P_n_ratio_bottom
-        if theta_bottom > 0:  # oblique shock
-            theta_max, beta_max = get_theta_max_beta_from_tbm(M_bottom[-1], gamma)
-            if theta_bottom >= theta_max:  # detached shock, no solution
-                return np.nan
-            else:
-                beta, P2_1, T2_1, M2 = mach_function(M_bottom[-1], gamma, theta_bottom)
-                P_end_in *= P2_1
-        elif theta_bottom < 0:  # expansion fan
-            M2 = get_M2_from_nu(M_bottom[-1], gamma, -theta_bottom)  # -theta because theta is negative
-            P02_P2 = P0_P(M2, gamma)
-            P01_P1 = P0_P(M_bottom[-1], gamma)
-            P_end_in *= P01_P1/P02_P2 # isentropic expansion, P02 = P01. so P2/P1 = P01/P1 * 1/ (P02/P2)
-        else:  # theta == 0, no change in Mach number
-            pass
-        return P_end_in
-    
-    # Need to iterate values of theta_top / theta_bottom until we converge P_end_in_top = P_end_in_bottom
-    def func(theta_top):
-        return f_n_to_end_top(theta_top) - f_n_to_end_bottom(theta_top)
-    
-    # Use numerical iterator to find root
-    # def numerical_iterator(func, start, end, goal_y, tol=1e-6, max_iter=1000):
-    theta_top = numerical_iterator(func, -20, 20, 0, tol=1e-6, max_iter=1000)
-
-    return theta_top, f_n_to_end_top(theta_top)

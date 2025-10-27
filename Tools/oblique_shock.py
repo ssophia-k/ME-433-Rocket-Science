@@ -132,7 +132,8 @@ def mach_function(M_in, gamma, theta_deg, delta = 1):
         T_out_T_in = P_out_P_in / rho_out_rho_in
         M_out = M_out_n / np.sin(beta - theta)
     
-    return np.rad2deg(beta), P_out_P_in, T_out_T_in, M_out
+    return np.rad2deg(beta), P_out_P_in, T_out_T_in, M_out, rho_out_rho_in
+
 
     
 

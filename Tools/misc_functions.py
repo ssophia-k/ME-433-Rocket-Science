@@ -1,17 +1,21 @@
 import numpy as np
-from .constants import *
-from .standard_atmosphere import get_temp_from_altitude, get_pressure_from_altitude
 
-def P0_P(M, gamma):
+import os, sys
+from pathlib import Path
+sys.path.insert(0,os.fspath(Path(__file__).parents[1]))
+
+from Tools.constants import *
+from Tools.standard_atmosphere import get_temp_from_altitude, get_pressure_from_altitude
+
+def get_speed_of_sound(T, R = R_air, gamma = gamma_air):
     """
-    Find stagnation pressure ratio via isentropic process
-    Parameters:
-        M: Mach number (unitless)
-        gamma: ratio of specific heats (unitless)
-    Returns:
-        P0/P: stagnation pressure versus pressure ratio (unitless)
+    Returns the speed of sound at a give temperature
+    T [K] - temperature
+    R [J/kg*K] - specific gas constant
+    gamma [unitless] - ratio of specific heats
+    Returns speed of sound in [m/s]
     """
-    return (1 + (gamma-1)/2 * M**2) ** (gamma/(gamma-1))
+    return np.sqrt(gamma * R * T)
 
 def get_mean_free_path(altitude, diameter):
     """

@@ -8,7 +8,7 @@ sys.path.insert(0,os.fspath(Path(__file__).parents[1]))
 
 from Tools.constants import *
 from Tools.standard_atmosphere import *
-from Tools.more_functions import *
+from Tools.misc_functions import *
 from Tools.numerical_iterator import *
 
 R_air = R_air # J/(kg*K)
