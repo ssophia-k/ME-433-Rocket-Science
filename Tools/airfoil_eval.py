@@ -13,6 +13,8 @@ from Tools.constants import *
 
 tol = 1e-8
 
+def _scalar(x):
+    return float(np.asarray(x).reshape(-1)[0])
 
 def get_surface_angles(x, y, aoa):
     """
@@ -88,13 +90,16 @@ def get_Mach_numbers_p_ratios(M_in, gamma, top_thetas, bottom_thetas, want_rho_t
     T_ratio_top = []
     for theta in top_thetas:
         # if last Mach number is already NaN or <1, propagate NaNs forward
-        if np.isnan(M_top[-1]) or M_top[-1]<1.0:
+        if np.isnan(_scalar(M_top[-1])) or (_scalar(M_top[-1])<1.0):
+        #prev = np.atleast_1d(M_top[-1])
+        # propagate NaNs or subsonic forward
+        #if np.isnan(prev).any() or (prev < 1.0).any():
             M_top.append(np.nan)
             P_ratio_top.append(np.nan)
             continue
 
         if theta > (0 + tol):  # oblique shock
-            theta_max, beta_max = get_theta_max_beta_from_tbm(M_top[-1], gamma)
+            theta_max, beta_max = get_theta_max_beta_from_tbm(_scalar(M_top[-1]), gamma)
             if theta >= theta_max:  # detached shock, no solution
                 M_top.append(np.nan)
                 P_ratio_top.append(np.nan)
@@ -102,7 +107,7 @@ def get_Mach_numbers_p_ratios(M_in, gamma, top_thetas, bottom_thetas, want_rho_t
                 T_ratio_top.append(np.nan)
             else:
                 #np.rad2deg(beta), P_out_P_in, T_out_T_in, M_out, rho_out_rho_in
-                beta, P2_1, T2_1, M2, rho2_1 = mach_function(M_top[-1], gamma, theta) 
+                beta, P2_1, T2_1, M2, rho2_1 = mach_function(_scalar(M_top[-1]), gamma, theta) 
                 M_top.append(M2)
                 P_ratio_top.append(P2_1)
                 rho_ratio_top.append(rho2_1)
@@ -110,7 +115,7 @@ def get_Mach_numbers_p_ratios(M_in, gamma, top_thetas, bottom_thetas, want_rho_t
 
         elif theta < (0 - tol):  # expansion fan
             try:
-                M2 = get_M2_from_nu(M_top[-1], gamma, -theta)  # -theta because theta is negative
+                M2 = get_M2_from_nu(_scalar(M_top[-1]), gamma, -theta)  # -theta because theta is negative
             except:
                 M_top.append(np.nan)
                 P_ratio_top.append(np.nan)
@@ -142,13 +147,18 @@ def get_Mach_numbers_p_ratios(M_in, gamma, top_thetas, bottom_thetas, want_rho_t
     T_ratio_bot = []
     for theta in bottom_thetas:
         # if last Mach number is already NaN or <1, propagate NaNs forward
-        if np.isnan(M_bot[-1]) or M_bot[-1]<1.0:
+        #if np.isnan(M_bot[-1]) or M_bot[-1]<1.0:
+        #prev = np.atleast_1d(M_bot[-1])
+        # propagate NaNs or subsonic forward
+        #if np.isnan(prev).any() or (prev < 1.0).any():
+        if np.isnan(_scalar(M_bot[-1])) or _scalar(M_bot[-1])<1.0:
             M_bot.append(np.nan)
             P_ratio_bot.append(np.nan)
             continue
 
         if theta > (0 + tol):  # oblique shock
-            theta_max, beta_max = get_theta_max_beta_from_tbm(M_bot[-1], gamma)
+            theta_max, beta_max = get_theta_max_beta_from_tbm(_scalar(M_bot[-1]), gamma)
+            #theta_max, beta_max = get_theta_max_beta_from_tbm(M_bot[-1], gamma) # float(np.asarray(x).reshape(-1)[0])
             if theta >= theta_max:  # detached shock, no solution
                 M_bot.append(np.nan)
                 P_ratio_bot.append(np.nan)
@@ -156,7 +166,7 @@ def get_Mach_numbers_p_ratios(M_in, gamma, top_thetas, bottom_thetas, want_rho_t
                 T_ratio_bot.append(np.nan)
             else:
                 #np.rad2deg(beta), P_out_P_in, T_out_T_in, M_out, rho_out_rho_in
-                beta, P2_1, T2_1, M2, rho2_1 = mach_function(M_bot[-1], gamma, theta) 
+                beta, P2_1, T2_1, M2, rho2_1 = mach_function(_scalar(M_bot[-1]), gamma, theta) 
                 M_bot.append(M2)
                 P_ratio_bot.append(P2_1)
                 rho_ratio_bot.append(rho2_1)
@@ -164,7 +174,7 @@ def get_Mach_numbers_p_ratios(M_in, gamma, top_thetas, bottom_thetas, want_rho_t
 
         elif theta < (0 - tol):  # expansion fan
             try:
-                M2 = get_M2_from_nu(M_bot[-1], gamma, -theta)  # -theta because theta is negative
+                M2 = get_M2_from_nu(_scalar(M_bot[-1]), gamma, -theta)  # -theta because theta is negative
             except:
                 M_bot.append(np.nan)
                 P_ratio_bot.append(np.nan)

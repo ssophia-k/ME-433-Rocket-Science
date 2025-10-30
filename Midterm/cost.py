@@ -67,8 +67,11 @@ def drag(x, y_top, y_bot, M_in, gamma, P_inf, T_inf, depth, inviscid = True):
     return D
 
 def enclosed_area(x, y_top, y_bot):
-    height = np.array(y_top) - np.array(y_bot)
-    return np.trapz(height, x)
+    top_area = np.trapz(y_top, x)
+    bottom_area = np.trapz(y_bot,x)
+    # height = np.array(y_top) - np.array(y_bot)
+    # return np.trapz(height, x)
+    return top_area-bottom_area
 
 def cost_function(x, y_top, y_bot, M_in, gamma, P_inf, T_inf, depth, inviscid=True):
     """

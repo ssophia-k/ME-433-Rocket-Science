@@ -3,3 +3,12 @@ __pycache__/
 *.pyo
 *.pyd
 .DS_Store
+
+build/
+*.aux
+*.bbl
+*.blg
+*.fdb_latemk
+*.fls
+*.log
+*.gz
