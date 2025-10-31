@@ -117,10 +117,9 @@ a &= \sqrt{\gamma R T} \\
 \label{eq:isentropic}
 \end{subequations}
 
-Once we have the absolute values at each face of the profile, we find pressure drag via summing up the component of pressure acting parallel to the flow, multiplied by the length of the face segment, as well as the depth into the page (given as $1$ m). To find skin drag, we utilize Equation \ref{eq:skin_drag}, where the drag coefficient is given as $C_D=0.01$, the area is face-segment length multiplied by depth into the page, and the 
-density and velocity are those of the fluid touching the subsection (found as explained in the previous paragraph). The drag is calculated at each face of each profile, and then summed up to give a total drag for the profile.
+Once we have the absolute values at each face of the profile, we find pressure drag via summing up the component of pressure acting parallel to the flow, multiplied by the length of the face segment, as well as the depth into the page (given as $1$ m). To find skin drag, we utilize Equation \ref{eq:skin_drag}, where the drag coefficient is given as $C_D=0.01$, the area is face-segment length multiplied by depth into the page, and the density and velocity are those of the fluid touching the subsection (found as explained in the previous paragraph). It should be noted that we multiply the assignment's given equation by the $\cos(\theta_{surface})$ term in order to get the viscous drag component along the direction of fluid flow (which is the same direction as the pressure drag). The drag is calculated at each face of each profile, and then summed up to give a total drag for the profile.
 \begin{equation}
-    D=\frac{1}{2} \rho v^2 C_D A 
+    D=\frac{1}{2} \rho v^2 C_D A \cos(\theta_{surface})
     \label{eq:skin_drag}
 \end{equation} 
 
@@ -383,7 +382,7 @@ The truncated diamond profiles were tested for base height values of $h \in [0.0
 \section{Results: Viscous Case} \label{viscous_results}
 For the viscous physical model, all profiles were tested acros the same parameter space as described in Section \ref{inviscid_results}.
 \subsection{Parabolic Profiles}
- Figures \ref{fig:vis-parabola-a} and \ref{fig:vis-parabola-b} display, respectively, the cost as it varies over all parabolas generated, as well as the lowest-cost parabolic shape, which achieved a cost of $1.528 \times 10^7$ with $a=0.100$ and $n=4$.
+ Figures \ref{fig:vis-parabola-a} and \ref{fig:vis-parabola-b} display, respectively, the cost as it varies over all parabolas generated, as well as the lowest-cost parabolic shape, which achieved a cost of $1.525 \times 10^7$ with $a=0.100$ and $n=4$.
 \begin{figure}[H]
 \centering
 \begin{subfigure}[b]{0.45\textwidth}
@@ -404,7 +403,7 @@ For the viscous physical model, all profiles were tested acros the same paramete
 \end{figure}
 
 \subsection{Power Series Profiles}
-Figures \ref{fig:vis-power-a} and \ref{fig:vis-power-b} display, respectively, the cost function as it varies over all power series profiles generated, as well as the profile for the lowest-cost power series shape, which achieved a cost of $1.561 \times 10^7$ with $h=0.106 \text{ m}$ and $n=5$.
+Figures \ref{fig:vis-power-a} and \ref{fig:vis-power-b} display, respectively, the cost function as it varies over all power series profiles generated, as well as the profile for the lowest-cost power series shape, which achieved a cost of $1.558 \times 10^7$ with $h=0.106 \text{ m}$ and $n=5$.
 \begin{figure}[H]
 \centering
 \begin{subfigure}[b]{0.45\textwidth}
@@ -425,7 +424,7 @@ Figures \ref{fig:vis-power-a} and \ref{fig:vis-power-b} display, respectively, t
 \end{figure}
 
 \subsection{Triangular Profiles}
-Figures \ref{fig:vis-triangle-a} and \ref{fig:vis-triangle-b} display, respectively, the cost function as it varies over $\theta$, as well as the profile for the lowest-cost triangular profile, which achieved a cost of $1.797 \times 10^7$ with $\theta=5.736\deg$.
+Figures \ref{fig:vis-triangle-a} and \ref{fig:vis-triangle-b} display, respectively, the cost function as it varies over $\theta$, as well as the profile for the lowest-cost triangular profile, which achieved a cost of $1.794 \times 10^7$ with $\theta=5.736\deg$.
 \begin{figure}[H]
 \centering
 \begin{subfigure}[b]{0.45\textwidth}
@@ -446,7 +445,7 @@ Figures \ref{fig:vis-triangle-a} and \ref{fig:vis-triangle-b} display, respectiv
 \end{figure}
 
 \subsection{Triangular Wedge Profiles}
-Figures \ref{fig:vis-wedge-a} and \ref{fig:vis-wedge-b} display, respectively, the cost function as it varies over both wedge parameters of $\theta$ and $h$, in heat-map form, as well as the profile for the lowest-cost triangular wedge profile, which achieved a cost of $1.467 \times 10^7$ with $h=0.136 \text{ m}$ and $\theta=7.355\deg$.
+Figures \ref{fig:vis-wedge-a} and \ref{fig:vis-wedge-b} display, respectively, the cost function as it varies over both wedge parameters of $\theta$ and $h$, in heat-map form, as well as the profile for the lowest-cost triangular wedge profile, which achieved a cost of $1.464 \times 10^7$ with $h=0.136 \text{ m}$ and $\theta=7.355\deg$.
 \begin{figure}[H]
 \centering
 \begin{subfigure}[b]{0.54\textwidth}
@@ -467,7 +466,7 @@ Figures \ref{fig:vis-wedge-a} and \ref{fig:vis-wedge-b} display, respectively, t
 \end{figure}
 
 \subsection{Trapezoidal Profiles}
-Figures \ref{fig:vis-trapezoid-a} and \ref{fig:vis-trapezoid-b} display, respectively, the cost function as it varies over the parameters of $h$ and $L_t$, in heat-map form, as well as the profile for the lowest-cost trapezoidal profile, which achieved a cost of $1.896\times 10^7$ with $h=0.100 \text{ m}$ and $L_t=0.431 \text{ m}$.
+Figures \ref{fig:vis-trapezoid-a} and \ref{fig:vis-trapezoid-b} display, respectively, the cost function as it varies over the parameters of $h$ and $L_t$, in heat-map form, as well as the profile for the lowest-cost trapezoidal profile, which achieved a cost of $1.893\times 10^7$ with $h=0.100 \text{ m}$ and $L_t=0.431 \text{ m}$.
 \begin{figure}[H]
 \centering
 \begin{subfigure}[b]{0.54\textwidth}
@@ -488,7 +487,7 @@ Figures \ref{fig:vis-trapezoid-a} and \ref{fig:vis-trapezoid-b} display, respect
 \end{figure}
 
 \subsection{Truncated Diamond Profiles}
-Figures \ref{fig:vis-diamond-a} and \ref{fig:vis-diamond-b} display, respectively, the cost function as it varies over both parameters of $h$ and $m$, in heat-map form, as well as the profile for the lowest-cost diamond profile, which achieved a cost of $1.495\times 10^7$ with $h=0.090 \text{ m}$ and $m=0.126$.
+Figures \ref{fig:vis-diamond-a} and \ref{fig:vis-diamond-b} display, respectively, the cost function as it varies over both parameters of $h$ and $m$, in heat-map form, as well as the profile for the lowest-cost diamond profile, which achieved a cost of $1.491\times 10^7$ with $h=0.090 \text{ m}$ and $m=0.126$.
 \begin{figure}[H]
 \centering
 \begin{subfigure}[b]{0.54\textwidth}
@@ -513,8 +512,9 @@ After generating all profiles and evaluating their cost functions, we compared a
 
 From Section \ref{inviscid_results}, we see that \textbf{the optimal shape for the inviscid case is a triangular wedge of height $\mathbf{0.01}$ m and angle $\mathbf{1.309}$º with a cost of $\mathbf{5.043 \times 10^6}$}. The profile of this shape can be seen in Figure \ref{fig:inv-wedge-b}.
 
-From Section \ref{viscous_results}, we see that \textbf{the optimal shape for the viscous case is a triangular wedge of height $\mathbf{0.136}$ m and angle $\mathbf{7.355}$º with a cost of $\mathbf{1.467 \times 10^7}$}. The profile of this shape can be seen in Figure \ref{fig:vis-wedge-b}.
+From Section \ref{viscous_results}, we see that \textbf{the optimal shape for the viscous case is a triangular wedge of height $\mathbf{0.136}$ m and angle $\mathbf{7.355}$º with a cost of $\mathbf{1.464 \times 10^7}$}. The profile of this shape can be seen in Figure \ref{fig:vis-wedge-b}.
 
+As expected, the lowest cost for the viscous model is higher than that of the inviscid model, due to the addition of skin drag on all surfaces.
 
 For both cases, it can be seen that all plots of the cost function over the parameter space display a somewhat oscillatory behavior of vertical jumps (in 2D plots) and sharp cliffs (in 3D plots). This comes directly from the trip-count formula in Eq. \ref{eq:num_trips}, which uses a ceiling to enforce integer trips. As the enclosed area changes continuously, $N$ stays flat until the ratio in \ref{eq:num_trips} crosses the next integer threshold; at that point $N$ jumps by 2 (outbound and return). Those discontinuities propagate into the overall cost function as well, and are displayed in the graph.
 
@@ -525,6 +525,8 @@ In contrast, the viscous case favors shapes that have a thicker profile that enc
 It is interesting that both cases favor the triangular wedge. This is likely because the back portion of the triangular wedge, which is comprised of two horizontal segments, greatly increase enclosed area without increasing any drag for the inviscid case, and only slightly increasing skin drag for the viscous case. As previously mentioned is the trend for all shapes, the wedge for the viscous case is thicker than that of the inviscid case.
 
 It was noted throughout this process that generally, shapes with a lower resolution (such as lower resolution parabolas and power series, or fixed low-resolution polygons) were favored. I believe that this is because a series of many small oblique shocks will preserve more static pressure across the shape, as seen in the results of Homework 3, whereas a smaller number of larger-angled oblique shocks will cause more pressure loss, which will then decrease drag. Additionally, coarser discretizations reduce total wetted length for a given non-polygonal shape, which lowers viscous drag (though it should be noted that the effects of this would be quite minimal in comparison to other effects).
+
+One limitation of our design process is the assumption of 1D flow and of constant profile into the depth of the bounding box. Real nose cones are three-dimensional, and will have variable geometry into the depth of the page, and so will provide different (and perhaps better) results. I note that these results may be better because if we do not include curvature in the third dimension, we are increasing the amount of planar surfaces normal to the incoming flow, and therefore increasing drag. Additionally, real flow conditions across the surfaces will experience detached shocks, as well as shock-shock interactions, both of which are ignored in our analysis, and provide more complexity to the profiles we optimize. A full computational fluid dynamics (CFD) analysis may be appropriate to capture the full extent of this behavior. For the viscous drag model as well, we assumed a constant drag coefficient of $C_D = 0.01$ for all surfaces, though real-life behavior would likely cause skin friction to depend on the Reynolds Number, the Mach Number, and other variable flow conditions. Additionally, the cost function we are provided with is quite limited: there are no penalties or rewards for manufacturability, heating effects, and partial loading of the train. Finally, we made an assumption that the $AB$ back-face pressure is set to zero. This idealizes the real boundary, but real-life conditions would likely have non-zero pressure that affect drag (and perhaps actually decrease drag, due to the direction that the pressure acts).
 
 \section{Conclusion}
 Within the assignment constraints, triangular wedges provide the best trade between drag and trip count in both models, with thicker wedges preferred when skin friction is included. The report includes comparisons of cost functions across families of shapes, drag calculations, and a discussion of inviscid vs. viscous differences and analysis limits.

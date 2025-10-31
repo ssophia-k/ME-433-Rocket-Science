@@ -62,8 +62,8 @@ def drag(x, y_top, y_bot, M_in, gamma, P_inf, T_inf, depth, inviscid = True):
         D -= length_bot * depth * np.sin(np.deg2rad(surface_angles_bot[i])) * Pi_P0_bot * P_inf
 
         if inviscid == False:
-            D += 0.5 * depth * length_top * rho_top * V_top**2 * 0.01
-            D += 0.5 * depth * length_bot * rho_bot * V_bot**2 * 0.01
+            D += 0.5 * depth * length_top * rho_top * V_top**2 * 0.01 * np.cos(np.deg2rad(surface_angles_top[i]))
+            D += 0.5 * depth * length_bot * rho_bot * V_bot**2 * 0.01 * np.cos(np.deg2rad(surface_angles_bot[i]))
     return D
 
 def enclosed_area(x, y_top, y_bot):
