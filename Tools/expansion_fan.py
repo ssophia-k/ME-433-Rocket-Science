@@ -21,6 +21,21 @@ def nu_func(M, gamma):
     
     return np.sqrt((gamma+1)/(gamma-1)) * np.arctan(np.sqrt(((gamma-1)/(gamma+1)) * (M**2-1))) - np.arctan(np.sqrt(M**2-1))
 
+def inverse_nu_func(nu, gamma):
+    """
+    Inverse Prandtl-Meyer function
+    Parameters:
+        nu: Prandtl-Meyer function value (radians)
+        gamma: ratio of specific heats (unitless)
+    Returns:
+        M: incoming Mach number (unitless)
+    """
+    def func(M):
+        return nu_func(M, gamma) - nu
+    initial_guess = 1
+    M = numerical_iterator(func, initial_guess, 100, 0, tol=1e-12, max_iter=1000)
+    return M
+
 def get_M2_from_nu(M1, gamma, theta_deg):
     """
     Given M1 and delta_nu, solve for M2 using the Prandtl-Meyer function.
