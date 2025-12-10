@@ -15,6 +15,7 @@ sys.path.insert(0,os.fspath(Path(__file__).parents[1]))
 from Tools.constants import R_air
 from Tools.misc_functions import get_speed_of_sound
 from Tools.oblique_shock import mach_function
+from Tools.normal_shock import M2_from_normal_shock, P2_P1_from_normal_shock, T2_T1_from_normal_shock
 
 # Inlet should take in atmospheric conditions, desired m_dot, number of angles
 # Should output P, M at input to diffuser (after NS), as well as P after all OSs but before NS for calculating external drag
@@ -34,6 +35,8 @@ class inlet:
         gamma : ratio of specific heats. The default is 1.4.
 
         """
+        
+        self.gamma = gamma
         rho_atm = P_atm/(R_air*T_atm)
         a = get_speed_of_sound(T_atm)
         self.y_lip = m_dot/(rho_atm*M_max*a*width)
@@ -51,9 +54,13 @@ class inlet:
 
         self.x_lip = self.y_lip/np.tan(np.deg2rad(beta_initial))
         
+        self.betas = [beta_initial]
+        
         for i in range(1, len(turn_angles)):
             theta = turn_angles[i]
             beta, _, _, M, _ = mach_function(Ms[-1], gamma, theta)
+            beta += self.location_angles[i-1]
+            self.betas.append(beta)
             Ms.append(M)
             x = (-self.ys[-1]+self.y_lip+self.xs[-1]*np.tan(np.deg2rad(self.location_angles[i-1]))-self.x_lip*np.tan(np.deg2rad(beta)))/(np.tan(np.deg2rad(self.location_angles[i-1]))-np.tan(np.deg2rad(beta)))
             y = self.y_lip+(x-self.x_lip)*np.tan(np.deg2rad(beta))
@@ -67,16 +74,44 @@ class inlet:
             ax.plot([self.xs[i], self.xs[i+1]], [self.ys[i], self.ys[i+1]])
         ax.plot([self.xs[-1], self.xs[-1]+length], [self.ys[-1], self.ys[-1]+np.tan(np.deg2rad(self.location_angles[-1]))*length])
         ax.scatter(self.x_lip, self.y_lip)
+        for i in range(len(self.xs)):
+            l = self.x_lip-self.xs[i]
+            ax.plot([self.xs[i], self.x_lip], [self.ys[i], self.ys[i]+np.tan(np.deg2rad(self.betas[i]))*l], "--")
         
-    def output_properties(self):
-        pass
+    def output_properties(self, P_in, T_in, M_in):
+        """
+        Get properties coming out of inlet
+        Parameters
+        P_in : Pressure of input flow, Pa
+        T_in : Temperature of input flow, K
+        M_in : Mach number of input flow
+        Returns
+        M_normal : Mach number of output flow into throat
+        P_normal : Pressure of output flow into throat, Pa
+        T_normal : Temperature of output flow into throat, K
+        M_oblique : Mach number of flow past lip surface
+        P_oblique : Pressure of flow past lip surface, Pa
+        T_oblique : Temperature of flow past lip surface, K
+        """
+        M = M_in
+        P = P_in
+        T = T_in
+        for theta in self.turn_angles:
+            beta, Pr, Tr, M, rhor = mach_function(M, self.gamma, theta)
+            P *= Pr
+            T *= Tr
         
-            
-            
+        M_oblique, P_oblique, T_oblique = M, P, T  # these are the properties after all oblique shocks, before normal shock
+        
+        M_normal = M2_from_normal_shock(M_oblique, self.gamma)
+        P_normal = P_oblique*P2_P1_from_normal_shock(M_oblique, self.gamma)
+        T_normal = T_oblique*T2_T1_from_normal_shock(M_oblique, self.gamma)
+        
+        return M_normal, P_normal, T_normal, M_oblique, P_oblique, T_oblique
     
         
 if __name__ == "__main__":
-    i = inlet(101325, 300, 3.25, 1, [5, 5, 5, 5])
+    i = inlet(101325, 300, 3.25, 1, [5, 5, 5, 20])
     ax = plt.subplot()
     i.plot(ax)
     plt.show()
