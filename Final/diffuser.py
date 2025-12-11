@@ -36,9 +36,9 @@ def find_diffuser(M_in, P_in, T_in, m_dot, width, M_exit, Length, Resolution):
     T0 = get_T0_from_static(T_in, M_in, gamma)
     A_star = area_in/ (np.sqrt(area_mach_relation(M_in, gamma)))
 
-    print(f"--- Design Parameters ---")
-    print(f"Total Pressure (P0): {P0/1000:.2f} kPa")
-    print(f"Theoretical A*:      {A_star:.4f} m^2")
+    # print(f"--- Design Parameters ---")
+    # print(f"Total Pressure (P0): {P0/1000:.2f} kPa")
+    # print(f"Theoretical A*:      {A_star:.4f} m^2")
 
     # Generate Profile
     # We define a linear deceleration from M_in to M_exit over the Length L.
@@ -70,57 +70,58 @@ def find_diffuser(M_in, P_in, T_in, m_dot, width, M_exit, Length, Resolution):
     return df
 
 
-# --- Design Inputs ---
-
-# INLET CONDITIONS (From the inlet portion)
-M_in = 0.7      # Entering Mach (Must be < 1)
-P_in = 2000000     # Inlet Static Pressure (Pa)
-T_in = 716       # Inlet Static Temp (K)
-m_dot = 1.0       # Mass flow (kg/s)
-width = 1 # width into the page (m)
-
-# DESIGN GOALS
-M_exit = 0.1       # Target Mach at combustor face
-Length = 0.8      # Length of the diffuser section (meters)
-Resolution = 100   # Number of coordinate points
-
-df = find_diffuser(M_in, P_in, T_in, m_dot, width, M_exit, Length, Resolution)
-
-# --- Outputs ---
-
-print(f"\n--- Diffuser Geometry ---")
-print(f"Inlet height:  {df['y'].iloc[0]:.3f} m")
-print(f"Exit height:   {df['y'].iloc[-1]:.3f} m")
-print(f"Area Expansion Ratio: {df['area'].iloc[-1]/df['area'].iloc[0]:.2f}")
-print(f"Pressure Rise: {(df['Pressure'].iloc[-1] - P_in):.2f} Pa")
-print(f"Pressure: {(df['Pressure'].iloc[-1])} Pa")
-print(f"Temperature: {(df['Temperature'].iloc[-1])} K")
-
-# Plotting
-plt.figure(figsize=(10, 8))
-
-# Profile Plot
-plt.subplot(2, 1, 1)
-plt.plot(df['x'], [0] * Resolution, 'k-', linewidth=2, label='Wall')
-plt.plot(df['x'], -df['y'], 'k-', linewidth=2)
-plt.fill_between(df['x'], [0] * Resolution, -df['y'], color='lightblue', alpha=0.3)
-plt.title(f'Diffuser Profile (Decelerating M={M_in} to M={M_exit})')
-plt.ylabel('Height (m)')
-plt.legend()
-plt.grid(True)
-
-# --- SELF-NORMALIZING Y-LIMITS ---
-ymax_val = df['y'].max()
-plt.ylim(-1.1 * ymax_val, 0.1 * ymax_val)
-
-
-# Pressure Plot
-plt.subplot(2, 1, 2)
-plt.plot(df['x'], df['Pressure']/1000, 'r-', linewidth=2)
-plt.xlabel('Length (m)')
-plt.ylabel('Static Pressure (kPa)')
-plt.title('Static Pressure Recovery')
-plt.grid(True)
-
-plt.tight_layout()
-plt.show()
+if __name__ == "__main__":
+    # --- Design Inputs ---
+    
+    # INLET CONDITIONS (From the inlet portion)
+    M_in = 0.7      # Entering Mach (Must be < 1)
+    P_in = 2000000     # Inlet Static Pressure (Pa)
+    T_in = 716       # Inlet Static Temp (K)
+    m_dot = 1.0       # Mass flow (kg/s)
+    width = 1 # width into the page (m)
+    
+    # DESIGN GOALS
+    M_exit = 0.1       # Target Mach at combustor face
+    Length = 0.8      # Length of the diffuser section (meters)
+    Resolution = 100   # Number of coordinate points
+    
+    df = find_diffuser(M_in, P_in, T_in, m_dot, width, M_exit, Length, Resolution)
+    
+    # --- Outputs ---
+    
+    print(f"\n--- Diffuser Geometry ---")
+    print(f"Inlet height:  {df['y'].iloc[0]:.3f} m")
+    print(f"Exit height:   {df['y'].iloc[-1]:.3f} m")
+    print(f"Area Expansion Ratio: {df['area'].iloc[-1]/df['area'].iloc[0]:.2f}")
+    print(f"Pressure Rise: {(df['Pressure'].iloc[-1] - P_in):.2f} Pa")
+    print(f"Pressure: {(df['Pressure'].iloc[-1])} Pa")
+    print(f"Temperature: {(df['Temperature'].iloc[-1])} K")
+    
+    # Plotting
+    plt.figure(figsize=(10, 8))
+    
+    # Profile Plot
+    plt.subplot(2, 1, 1)
+    plt.plot(df['x'], [0] * Resolution, 'k-', linewidth=2, label='Wall')
+    plt.plot(df['x'], -df['y'], 'k-', linewidth=2)
+    plt.fill_between(df['x'], [0] * Resolution, -df['y'], color='lightblue', alpha=0.3)
+    plt.title(f'Diffuser Profile (Decelerating M={M_in} to M={M_exit})')
+    plt.ylabel('Height (m)')
+    plt.legend()
+    plt.grid(True)
+    
+    # --- SELF-NORMALIZING Y-LIMITS ---
+    ymax_val = df['y'].max()
+    plt.ylim(-1.1 * ymax_val, 0.1 * ymax_val)
+    
+    
+    # Pressure Plot
+    plt.subplot(2, 1, 2)
+    plt.plot(df['x'], df['Pressure']/1000, 'r-', linewidth=2)
+    plt.xlabel('Length (m)')
+    plt.ylabel('Static Pressure (kPa)')
+    plt.title('Static Pressure Recovery')
+    plt.grid(True)
+    
+    plt.tight_layout()
+    plt.show()

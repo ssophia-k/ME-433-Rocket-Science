@@ -85,7 +85,7 @@ class inlet:
             l = self.x_lip-self.xs[i]
             ax.plot([self.xs[i], self.x_lip], [self.ys[i], self.ys[i]+np.tan(np.deg2rad(self.betas[i]))*l], "--")
         
-        ax.plot([self.xs[-1], self.x_lip], [self.ys[-1], self.y_lip])
+        ax.plot([self.xs[-1], self.x_lip], [self.ys[-1], self.y_lip], "--")
         
     def output_properties(self, P_in, T_in, M_in):
         """
@@ -142,9 +142,11 @@ class inlet:
         return total_drag        
         
 if __name__ == "__main__":
-    i = inlet(101325, 300, 3.25, 1, [5, 5, 5, 5])
+    i = inlet(9112.32, 216.65, 3.25, 1, [5, 5, 5])
     ax = plt.subplot()
     i.plot(ax)
     ax.set_aspect('equal')
     plt.show()
-        
+    for label, val in zip(["M_normal", "P_normal", "T_normal", "M_oblique", "P_oblique", "T_oblique"], i.output_properties(9112.32, 216.65, 3.25)):
+        print(f"{label}: {val}")
+    
