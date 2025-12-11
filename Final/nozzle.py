@@ -10,7 +10,7 @@ from converging_section import converging_section
 gamma = 1.4
 R = 287
 
-def nozzle(P5, T5, M5, m_dot, M_exit, depth, n_characteristics=300):
+def nozzle(P5, T5, M5, m_dot, P_exit, depth, n_characteristics=300):
     """
     Design supersonic nozzle using Method of Characteristics
     
@@ -19,7 +19,7 @@ def nozzle(P5, T5, M5, m_dot, M_exit, depth, n_characteristics=300):
         T5: Static temperature at throat (K)
         M5: Mach number at throat (dimensionless) - should be 1.0
         m_dot: Mass flow rate (kg/s)
-        M_exit: Target exit Mach number (dimensionless)
+        P_exit: Target exit pressure (Pa)
         depth: Nozzle depth for 2D analysis (m)
         n_characteristics: Number of characteristics
     
@@ -88,6 +88,8 @@ def nozzle(P5, T5, M5, m_dot, M_exit, depth, n_characteristics=300):
     P0 = P5 * (1 + (gamma-1)/2 * M5**2)**(gamma/(gamma-1))
     T0 = T5 * (1 + (gamma-1)/2 * M5**2)
     
+    M_exit = np.sqrt(2/(gamma-1) * ((P0/P_exit)**((gamma-1)/gamma) - 1))
+
     rho5 = P5 / (R * T5)
     a5 = np.sqrt(gamma * R * T5)
     u5 = M5 * a5
@@ -443,9 +445,9 @@ if __name__ == "__main__":
     print(f"h5 = {h5} m")
 
     # Nozzle section (5 -> 6)
-    M_exit = 3
+    P_exit = 9112.32
 
-    P_nozzle, T_nozzle, M_nozzle, m_dot, A_nozzle, h_nozzle, x_nozzle = nozzle(P5, T5, M5, m_dot, M_exit, depth)
+    P_nozzle, T_nozzle, M_nozzle, m_dot, A_nozzle, h_nozzle, x_nozzle = nozzle(P5, T5, M5, m_dot, P_exit, depth)
 
     P6 = P_nozzle[-1]
     T6 = T_nozzle[-1]
