@@ -6,8 +6,10 @@ sys.path.insert(0,os.fspath(Path(__file__).parents[1]))
 
 from Tools.rayleigh import *
 from Tools.numerical_iterator import *
+from Tools.constants import *
+from Tools.misc_functions import get_speed_of_sound
 
-def solve_combustor_length(M_in, P_in, T_in, m_dot_air, m_dot_fuel):
+def solve_combustor_length(M_in, P_in, T_in, m_dot_air, width, m_dot_fuel):
     """
     Calculates the required constant-area tube length using Rayleigh flow 
     and the specific fuel burn time model provided.
@@ -17,20 +19,25 @@ def solve_combustor_length(M_in, P_in, T_in, m_dot_air, m_dot_fuel):
     - P_in: Inlet Static Pressure (Pa)
     - T_in: Inlet Static Temperature (K)
     - m_dot_air: Mass flow of air (kg/s)
+    - width: Width into the page (m)
     - m_dot_fuel: Mass flow of fuel (kg/s)
     """
     
     # Constants
-    gamma = 1.4
-    R = 287.05      # J/(kg*K)
-    cp = 1004.5     # J/(kg*K)
+    gamma = gamma_air
+    R = R_air      # J/(kg*K)
+    cp = C_p_air     # J/(kg*K)
     LHV_H2 = 120e6  # 120 MJ/kg = 120,000,000 J/kg
+
+    # Get starting height
+    u_in = M_in * get_speed_of_sound(T_in)
+    rho_in = P_in / (R * T_in)
+    area_in = m_dot_air / (rho_in * u_in)
+    height_in = area_in / width
 
     # ------------------------------------------------
     # INLET STATE (State 1)
     # ------------------------------------------------
-    # Total mass flow
-    m_dot_total = m_dot_air + m_dot_fuel
     
     # Inlet Isentropic Relations
     # T0 = T * (1 + ((gamma-1)/2) * M^2)
@@ -56,7 +63,7 @@ def solve_combustor_length(M_in, P_in, T_in, m_dot_air, m_dot_fuel):
     Q_total = m_dot_fuel * LHV_H2
     
     # Specific heat input (J/kg) relative to total mass
-    q_specific = Q_total / m_dot_total
+    q_specific = Q_total / m_dot_air
     
     # Calculate Exit Stagnation Temp (T0_out)
     # q = cp * (T0_out - T0_in)  ->  T0_out = T0_in + q/cp
@@ -115,8 +122,8 @@ def solve_combustor_length(M_in, P_in, T_in, m_dot_air, m_dot_fuel):
     # Average Conditions for Reaction Rate
     # Use P (atm) and T0 (K). 
     # We approximate these as the average of inlet and outlet.
-    P_avg_Pa = (P_in + P_out) / 2.0
-    P_avg_atm = P_avg_Pa / 101325.0
+    P_avg_Pa =  (P_in + P_out) / 2.0
+    P_avg_atm = P_avg_Pa / P_sea
     
     T0_avg = (T0_in + T0_out) / 2.0
     
@@ -130,6 +137,7 @@ def solve_combustor_length(M_in, P_in, T_in, m_dot_air, m_dot_fuel):
     length = u_avg * tau_sec
 
     return {
+        "height_m": height_in,
         "length_m": length,
         "burn_time_ms": tau_ms,
         "is_choked": is_choked,
@@ -154,13 +162,15 @@ P_inlet = 2754870.323663043
 T_inlet = 600.0      # K
 m_air = 1.0          # kg/s
 m_fuel = 10       # kg/s 
+width = 1 # m into page
 
-results = solve_combustor_length(M_inlet, P_inlet, T_inlet, m_air, m_fuel)
+results = solve_combustor_length(M_inlet, P_inlet, T_inlet, m_air, width, m_fuel)
 
 print("--- RAYLEIGH COMBUSTOR SIZING ---")
 if results['is_choked']:
     print("WARNING: Flow is THERMALLY CHOKED. Length calc assumes Q limited to max.")
-    
+
+print(f"Constant Height:   {results['height_m']:.4f} meters")
 print(f"Calculated Length:   {results['length_m']:.4f} meters")
 print(f"Burn Time:           {results['burn_time_ms']:.4f} ms")
 print(f"Avg Velocity:        {results['U_avg']:.2f} m/s")
