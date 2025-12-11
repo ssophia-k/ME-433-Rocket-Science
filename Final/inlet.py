@@ -142,7 +142,7 @@ class inlet:
         return total_drag        
         
 if __name__ == "__main__":
-    i = inlet(9112.32, 216.65, 3.25, 1, [10, 10, 10])
+    i = inlet(9112.32, 216.65, 3.25, 1, [5, 5, 5])
     ax = plt.subplot()
     i.plot(ax)
     ax.set_aspect('equal')

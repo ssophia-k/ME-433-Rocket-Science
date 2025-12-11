@@ -29,7 +29,7 @@ width = 1  # m
 
 # Inlet:
 M_max = M_atms[-1]
-turn_angles = [10]  # turn angles of inlet, degrees
+turn_angles = [5, 5, 5]  # turn angles of inlet, degrees
 inlet = Inlet(P_atm, T_atm, M_max, m_dot, turn_angles, width=width)
 
 # Diffuser:
@@ -74,5 +74,24 @@ for M_atm in M_atms:
     T6 = T6s[-1]
     M6 = M6s[-1]
 
-thrust_estimate = (P6 + m_dot*get_speed_of_sound(T6)*M6)*A6s[-1] - (P_atm+m_dot*get_speed_of_sound(T_atm)*M_atm)*(inlet.y_lip-0)*width
+thrust_estimate = (P6*A6s[-1] + m_dot*get_speed_of_sound(T6)*M6) - (P_atm*(inlet.y_lip-0)*width+m_dot*get_speed_of_sound(T_atm)*M_atm)
 print(f"{thrust_estimate=} N")
+
+print(f"{M1=}")
+print(f"{T1=}")
+print(f"{P1=}")
+print(f"{M2=}")
+print(f"{T2=}")
+print(f"{P2=}")
+print(f"{M3=}")
+print(f"{T3=}")
+print(f"{P3=}")
+print(f"{M4=}")
+print(f"{T4=}")
+print(f"{P4=}")
+print(f"{M5=}")
+print(f"{T5=}")
+print(f"{P5=}")
+print(f"{M6=}")
+print(f"{T6=}")
+print(f"{P6=}")
