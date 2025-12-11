@@ -36,6 +36,7 @@ class inlet:
 
         """
         
+        self.width = width
         self.gamma = gamma
         rho_atm = P_atm/(R_air*T_atm)
         a = get_speed_of_sound(T_atm)
@@ -67,16 +68,24 @@ class inlet:
             self.xs.append(x)
             self.ys.append(y)
         
-    
+        # Add an extra final point which is the closest point of the final line to the lip point:
+        theta = np.radians(self.location_angles[-1])
+        dx, dy = np.cos(theta), np.sin(theta)
+        t = (self.x_lip - self.xs[-1]) * dx + (self.y_lip - self.ys[-1]) * dy
+        x_end = self.xs[-1] + t * dx
+        y_end = self.ys[-1] + t * dy
+        self.xs.append(x_end)
+        self.ys.append(y_end)
+        
     def plot(self, ax):
-        length = self.x_lip-self.xs[-1]
         for i in range(len(self.xs)-1):
             ax.plot([self.xs[i], self.xs[i+1]], [self.ys[i], self.ys[i+1]])
-        ax.plot([self.xs[-1], self.xs[-1]+length], [self.ys[-1], self.ys[-1]+np.tan(np.deg2rad(self.location_angles[-1]))*length])
         ax.scatter(self.x_lip, self.y_lip)
-        for i in range(len(self.xs)):
+        for i in range(len(self.xs)-1):
             l = self.x_lip-self.xs[i]
             ax.plot([self.xs[i], self.x_lip], [self.ys[i], self.ys[i]+np.tan(np.deg2rad(self.betas[i]))*l], "--")
+        
+        ax.plot([self.xs[-1], self.x_lip], [self.ys[-1], self.y_lip])
         
     def output_properties(self, P_in, T_in, M_in):
         """
@@ -109,10 +118,33 @@ class inlet:
         
         return M_normal, P_normal, T_normal, M_oblique, P_oblique, T_oblique
     
+    def get_pressure_drag(self, P_in, M_in):
+        """
+        Determine pressure drag on inlet
+        Parameters
+        P_in : input pressure, Pa
+        M_in : input mach number
+        Returns
+        total_drag : presure drag force, N
+        """
+        M = M_in
+        P = P_in
+        total_drag = 0
+        for i in range(len(self.turn_angles)):
+            theta = self.turn_angles[i]
+            location_angle = self.location_angles[i]
+            beta, Pr, Tr, M, rhor = mach_function(M, self.gamma, theta)
+            P *= Pr
+            length = np.sqrt((self.xs[i+1]-self.xs[i])**2+(self.ys[i+1]-self.ys[i])**2)
+            force = P*length*self.width
+            total_drag += force*np.sin(np.deg2rad(location_angle))
+        
+        return total_drag        
         
 if __name__ == "__main__":
-    i = inlet(101325, 300, 3.25, 1, [5, 5, 5, 20])
+    i = inlet(101325, 300, 3.25, 1, [5, 5, 5, 5])
     ax = plt.subplot()
     i.plot(ax)
+    ax.set_aspect('equal')
     plt.show()
         
