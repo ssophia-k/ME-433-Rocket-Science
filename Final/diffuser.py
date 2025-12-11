@@ -101,7 +101,7 @@ plt.figure(figsize=(10, 8))
 
 # Profile Plot
 plt.subplot(2, 1, 1)
-plt.plot(x_coords, [0] * Resolution, 'k-', linewidth=2, label='Wall')
+plt.plot(df['x'], [0] * Resolution, 'k-', linewidth=2, label='Wall')
 plt.plot(df['x'], -df['y'], 'k-', linewidth=2)
 plt.fill_between(df['x'], [0] * Resolution, -df['y'], color='lightblue', alpha=0.3)
 plt.title(f'Diffuser Profile (Decelerating M={M_in} to M={M_exit})')

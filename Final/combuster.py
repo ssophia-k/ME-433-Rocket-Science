@@ -19,6 +19,7 @@ def solve_combustor_length(M_in, P_in, T_in, m_dot_air, width, m_dot_fuel):
     - P_in: Inlet Static Pressure (Pa)
     - T_in: Inlet Static Temperature (K)
     - m_dot_air: Mass flow of air (kg/s)
+    - width: Width into the page (m)
     - m_dot_fuel: Mass flow of fuel (kg/s)
     """
     
