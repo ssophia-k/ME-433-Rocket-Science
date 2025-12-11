@@ -95,7 +95,7 @@ def solve_combustor_length(M_in, P_in, T_in, m_dot_air, width, m_dot_fuel):
     # keep the 1e-9 buffer on the upper bound
     # to avoid singularities at M=1.0
         M_out = numerical_iterator(
-            func=func(M_out),
+            func=func,
             start=M_in,
             end=1.0 - 1e-9,
             goal_y=target_ratio
@@ -161,7 +161,7 @@ M_inlet = 0.1
 P_inlet = 2754870.323663043
 T_inlet = 600.0      # K
 m_air = 1.0          # kg/s
-m_fuel = 10       # kg/s 
+m_fuel = 0.1      # kg/s 
 width = 1 # m into page
 
 results = solve_combustor_length(M_inlet, P_inlet, T_inlet, m_air, width, m_fuel)
