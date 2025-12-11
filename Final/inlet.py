@@ -147,6 +147,12 @@ if __name__ == "__main__":
     i.plot(ax)
     ax.set_aspect('equal')
     plt.show()
+    
     for label, val in zip(["M_normal", "P_normal", "T_normal", "M_oblique", "P_oblique", "T_oblique"], i.output_properties(9112.32, 216.65, 3.25)):
         print(f"{label}: {val}")
     
+    inlet_width = np.sqrt((i.xs[-1]-i.x_lip)**2+(i.ys[-1]-i.y_lip)**2)
+    M, P, T, _, _, _ = i.output_properties(9112.32, 216.65, 3.25)
+    rho = P/(R_air*T)
+    a = get_speed_of_sound(T)
+    print(f"m_dot at throat = {M*a*rho*inlet_width*1}")
