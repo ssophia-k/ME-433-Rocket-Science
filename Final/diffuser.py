@@ -76,7 +76,7 @@ def find_diffuser(M_in, P_in, T_in, m_dot, width, M_exit, Length, Resolution):
 M_in = 0.7      # Entering Mach (Must be < 1)
 P_in = 2000000     # Inlet Static Pressure (Pa)
 T_in = 716       # Inlet Static Temp (K)
-m_dot = 100.0       # Mass flow (kg/s)
+m_dot = 1.0       # Mass flow (kg/s)
 width = 1 # width into the page (m)
 
 # DESIGN GOALS
@@ -89,8 +89,8 @@ df = find_diffuser(M_in, P_in, T_in, m_dot, width, M_exit, Length, Resolution)
 # --- Outputs ---
 
 print(f"\n--- Diffuser Geometry ---")
-print(f"Inlet height:  {df['y'].iloc[0]:.2f} m")
-print(f"Exit height:   {df['y'].iloc[-1]:.2f} m")
+print(f"Inlet height:  {df['y'].iloc[0]:.3f} m")
+print(f"Exit height:   {df['y'].iloc[-1]:.3f} m")
 print(f"Area Expansion Ratio: {df['area'].iloc[-1]/df['area'].iloc[0]:.2f}")
 print(f"Pressure Rise: {(df['Pressure'].iloc[-1] - P_in):.2f} Pa")
 print(f"Pressure: {(df['Pressure'].iloc[-1])} Pa")
@@ -107,8 +107,12 @@ plt.fill_between(df['x'], [0] * Resolution, -df['y'], color='lightblue', alpha=0
 plt.title(f'Diffuser Profile (Decelerating M={M_in} to M={M_exit})')
 plt.ylabel('Height (m)')
 plt.legend()
-plt.axis('equal')
 plt.grid(True)
+
+# --- SELF-NORMALIZING Y-LIMITS ---
+ymax_val = df['y'].max()
+plt.ylim(-1.1 * ymax_val, 0.1 * ymax_val)
+
 
 # Pressure Plot
 plt.subplot(2, 1, 2)
