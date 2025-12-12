@@ -145,5 +145,3 @@ nozzle_length = x6s[-1]-x6s[0]
 
 total_length = inlet_length+diffuser_length+combustor_length+converging_length+nozzle_length
 print(f"Total length: {total_length} m")
-
-
