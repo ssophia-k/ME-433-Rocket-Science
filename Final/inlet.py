@@ -21,6 +21,19 @@ from Tools.normal_shock import M2_from_normal_shock, P2_P1_from_normal_shock, T2
 # Should output P, M at input to diffuser (after NS), as well as P after all OSs but before NS for calculating external drag
 
 
+def line_height(x, x0, y0, angle_deg):
+    return y0 + np.tan(np.radians(angle_deg)) * (np.asarray(x) - x0)
+
+def plot_field(X, Y, field, title, label):
+    plt.figure(figsize=(6,4))
+    plt.contourf(X, Y, field, levels=50)
+    plt.colorbar(label=label)
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.title(title)
+    plt.tight_layout()
+    plt.show()
+
 class inlet:
     def __init__(self, P_atm, T_atm, M_max, m_dot, turn_angles, width=1, gamma=1.4):
         """
@@ -33,9 +46,7 @@ class inlet:
         turn_angles : list of turn angles in inlet in degrees. must be at least one
         width : width of nozzle in m. The default is 1.
         gamma : ratio of specific heats. The default is 1.4.
-
         """
-        
         self.width = width
         self.gamma = gamma
         self.M_max = M_max
@@ -190,10 +201,136 @@ class inlet:
         throat_angle = np.arctan((self.xs[-1]-self.x_lip)/(self.ys[-1]-self.y_lip))
         
         return rho_inlet*(a_inlet*M_inlet)**2*throat_area*np.cos(throat_angle)        
+    
+    def compute_flow_fields(self, xs, ys, P_in, T_in, M_in):
+        """
+        Compute P, T, rho, M fields at a grid with coordinates xs, ys
+        """
+        rho_in = P_in/(R_air*T_in)
+        
+        # Build mesh
+        X, Y = np.meshgrid(xs, ys, indexing='xy')
+
+        # Initialize ratio grids
+        P_ratio = np.ones_like(X, dtype=float)
+        T_ratio = np.ones_like(X, dtype=float)
+        rho_ratio = np.ones_like(X, dtype=float)
+        M_grid = np.full_like(X, M_in, dtype=float)
+
+        M_current = M_in
+        n_shocks = len(self.turn_angles)
+
+        for i in range(n_shocks):
+            # Shock geometry
+            xi, yi = self.xs[i], self.ys[i]
+            theta  = self.turn_angles[i]
+
+            # Shock relations
+            beta, Pr, Tr, M_after, rhor = mach_function(M_current, self.gamma, theta)
+            if i != 0:
+                beta += self.location_angles[i-1]
+
+            # Height of shock line at each X location
+            Y_line = line_height(X, xi, yi, beta)
+
+            # Downstream region (flip inequality if your geometry uses the opposite convention)
+            mask = (Y < Y_line)
+
+            # Apply ratios to the downstream region
+            P_ratio[mask] *= Pr
+            T_ratio[mask] *= Tr
+            rho_ratio[mask] *= rhor
+            M_grid[mask] = M_after
+
+            # New incoming Mach for next shock
+            M_current = M_after
+
+        # Convert ratios → actual values
+        P_grid   = P_in   * P_ratio
+        T_grid   = T_in   * T_ratio
+        rho_grid = rho_in * rho_ratio
+        
+        for i in range(len(self.xs) - 1):
+            x1, y1 = self.xs[i],   self.ys[i]
+            x2, y2 = self.xs[i+1], self.ys[i+1]
+
+            # Compute wall angle
+            angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
+
+            # Wall y-value at each X
+            Y_wall = line_height(X, x1, y1, angle)
+
+            # Finite segment limits
+            x_min = min(x1, x2)
+            x_max = max(x1, x2)
+
+            # Mask only points within segment span and below wall
+            wall_mask = (X >= x_min) & (X <= x_max) & (Y < Y_wall)
+
+            # Set masked regions to NaN
+            P_grid[wall_mask]   = np.nan
+            T_grid[wall_mask]   = np.nan
+            rho_grid[wall_mask] = np.nan
+            M_grid[wall_mask]   = np.nan
+
+        return P_grid, T_grid, rho_grid, M_grid
+            
+
+    def get_2d_profiles(self, xs, P_in, T_in, M_in):
+        """
+        Compute mass-flux-averaged profiles P(x), T(x), rho(x), M(x)
+        for given x locations.
+        """
+        ys = np.linspace(0, self.y_lip, num=200)
+        # First compute the full 2D flow field
+        P_grid, T_grid, rho_grid, M_grid = self.compute_flow_fields(xs, ys, P_in, T_in, M_in)
+    
+        # Build meshes and mask down to y <= height
+        X, Y = np.meshgrid(xs, ys, indexing='xy')
+    
+        # Mass flux weight (simple and consistent)
+        w = rho_grid * M_grid
+    
+        # Prepare output arrays
+        P_profile   = np.zeros_like(xs, dtype=float)
+        T_profile   = np.zeros_like(xs, dtype=float)
+        rho_profile = np.zeros_like(xs, dtype=float)
+        M_profile   = np.zeros_like(xs, dtype=float)
+    
+        # For each requested x value, find nearest column in compute grid
+        for j in range(len(xs)):
+            # find nearest x index
+    
+            # extract the vertical column
+            w_col   = w[:, j]
+            P_col   = P_grid[:, j]
+            T_col   = T_grid[:, j]
+            rho_col = rho_grid[:, j]
+            M_col   = M_grid[:, j]
+    
+            # mask out NaNs (walls)
+            valid = ~np.isnan(w_col)
+            wsum = np.sum(w_col[valid])
+
+            if wsum == 0:
+                # All blocked by walls → return NaN
+                P_profile[j]   = np.nan
+                T_profile[j]   = np.nan
+                rho_profile[j] = np.nan
+                M_profile[j]   = np.nan
+                continue
+
+            # Mass-flux-weighted averages
+            P_profile[j]   = np.sum(P_col[valid]   * w_col[valid]) / wsum
+            T_profile[j]   = np.sum(T_col[valid]   * w_col[valid]) / wsum
+            rho_profile[j] = np.sum(rho_col[valid] * w_col[valid]) / wsum
+            M_profile[j]   = np.sum(M_col[valid]   * w_col[valid]) / wsum
+    
+        return P_profile, T_profile, rho_profile, M_profile
         
             
 if __name__ == "__main__":
-    i = inlet(9112.32, 216.65, 3.25, 1, [5, 5, 5])
+    i = inlet(9112.32, 216.65, 3.25, 1, [10, 10, 10])
     ax = plt.subplot()
     i.plot(ax)
     ax.set_aspect('equal')
@@ -209,3 +346,22 @@ if __name__ == "__main__":
     print(f"m_dot at throat = {M*a*rho*inlet_width*1}")
     print(f"total pressure drag: {i.get_pressure_drag(9112, 216, 3)} N")
     print(f"inlet momentum flux: {i.get_inlet_momentum_flux(9112, 216, 3)} N")
+    
+    xs = np.linspace(0, 0.02, 500)
+    ys = np.linspace(0, i.y_lip, 500)
+    P_grid, T_grid, rho_grid, M_grid = i.compute_flow_fields(xs, ys, 9112.32, 216.65, 3.25)
+
+    # Create mesh for plotting
+    X, Y = np.meshgrid(xs, ys, indexing='xy')   
+    
+    # Plot all fields
+    plot_field(X, Y, P_grid,   "Pressure Field",       "P")
+    plot_field(X, Y, T_grid,   "Temperature Field",    "T")
+    plot_field(X, Y, rho_grid, "Density Field",        "rho")
+    plot_field(X, Y, M_grid,   "Mach Number Field",    "M")
+
+    P_profile, T_profile, rho_profile, M_profile = i.get_2d_profiles(xs, 9112.32, 216.65, 3.25)
+    
+    plt.plot(xs, M_profile)
+    plt.show()
+    

@@ -19,6 +19,37 @@ from Tools.misc_functions import get_speed_of_sound
 
 # Flow should be entering subsonic (due to the normal shock at the inlet)
 
+def evaluate_diffuser(x_vals, y_vals, M_in, P_in, T_in, width):
+    gamma = gamma_air
+    R = R_air
+
+    # Get starting height
+    u_in = M_in * get_speed_of_sound(T_in)
+    rho_in = P_in / (R * T_in)
+    area_in = m_dot / (rho_in * u_in)
+    height_in = area_in / width
+
+    # Establish Stagnation Properties (Constant throughout the diffuser)
+    P0 = get_P0_from_static(P_in, M_in, gamma)
+    T0 = get_T0_from_static(T_in, M_in, gamma)
+    A_star = area_in/ (np.sqrt(area_mach_relation(M_in, gamma)))
+
+    results = []
+
+    for x, y in zip(x_vals, y_vals):
+        A_ratio_sq = (y * width / A_star)**2
+        M = inverse_area_mach_relation(A_ratio_sq, gamma)[0] # subsonic solution
+        p_static = P0 / P0_P(M, gamma)
+        T_static = T0 / T0_T(M, gamma)
+
+        results.append([x, y, y*width, M, p_static, T_static])
+    
+    # Convert to DataFrame
+    df = pd.DataFrame(results, columns=['x', 'y', 'area', 'Mach', 'Pressure', 'Temperature'])
+
+    return df
+
+
 def find_diffuser(M_in, P_in, T_in, m_dot, width, M_exit, Length, Resolution):
     gamma = gamma_air
     R = R_air
