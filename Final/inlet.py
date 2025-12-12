@@ -33,9 +33,7 @@ class inlet:
         turn_angles : list of turn angles in inlet in degrees. must be at least one
         width : width of nozzle in m. The default is 1.
         gamma : ratio of specific heats. The default is 1.4.
-
         """
-        
         self.width = width
         self.gamma = gamma
         self.M_max = M_max
@@ -207,5 +205,5 @@ if __name__ == "__main__":
     rho = P/(R_air*T)
     a = get_speed_of_sound(T)
     print(f"m_dot at throat = {M*a*rho*inlet_width*1}")
-    print(f"total pressure drag: {i.get_pressure_drag(9112, 216, 3) N}")
+    print(f"total pressure drag: {i.get_pressure_drag(9112, 216, 3)} N")
     print(f"inlet momentum flux: {i.get_inlet_momentum_flux(9112, 216, 3)} N")

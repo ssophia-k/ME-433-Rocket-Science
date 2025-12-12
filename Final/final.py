@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0,os.fspath(Path(__file__).parents[1]))
 
 from Tools.misc_functions import get_speed_of_sound
+from Tools.constants import R_air
 
 from inlet import inlet as Inlet
 from diffuser import find_diffuser
@@ -74,8 +75,19 @@ for M_atm in M_atms:
     T6 = T6s[-1]
     M6 = M6s[-1]
 
-thrust_estimate = (P6*A6s[-1] + m_dot*get_speed_of_sound(T6)*M6) - (P_atm*(inlet.y_lip-0)*width+m_dot*get_speed_of_sound(T_atm)*M_atm)
-print(f"{thrust_estimate=} N")
+    thrust_estimate = (P6*A6s[-1] + m_dot*get_speed_of_sound(T6)*M6) - (P_atm*(inlet.y_lip-0)*width+m_dot*get_speed_of_sound(T_atm)*M_atm)
+    print(f"Thrust estimate: {thrust_estimate} N")
+    
+    pressure_force_inlet = inlet.get_pressure_drag(P_atm, T_atm, M_atm)
+    momentum_flux_inlet = inlet.get_inlet_momentum_flux(P_atm, T_atm, M_atm)
+    
+    pressure_force_outlet = P6*A6s[-1]  # Note: this doesn't account for any possible wall thickness at the outlet
+    rho_outlet = P6/(R_air*T6)
+    a_outlet = get_speed_of_sound(T6)
+    momentum_flux_outlet = rho_outlet*(a_outlet*M6)**2*A6s[-1]
+    
+    thrust = momentum_flux_outlet + pressure_force_outlet - momentum_flux_inlet - pressure_force_inlet
+    print(f"Actual thrust: {thrust} N")
 
 
 print(f"{M1=}")
