@@ -38,6 +38,7 @@ class inlet:
         
         self.width = width
         self.gamma = gamma
+        self.M_max = M_max
         rho_atm = P_atm/(R_air*T_atm)
         a = get_speed_of_sound(T_atm)
         self.y_lip = m_dot/(rho_atm*M_max*a*width)
@@ -118,11 +119,12 @@ class inlet:
         
         return M_normal, P_normal, T_normal, M_oblique, P_oblique, T_oblique
     
-    def get_pressure_drag(self, P_in, M_in):
+    def get_pressure_drag(self, P_in, T_in, M_in):
         """
-        Determine pressure drag on inlet
+        Determine pressure drag on inlet. This returns a positive number representing the sum of all forces into the inlet in the x-direction
         Parameters
         P_in : input pressure, Pa
+        T_in : input temperature, K
         M_in : input mach number
         Returns
         total_drag : presure drag force, N
@@ -130,6 +132,8 @@ class inlet:
         M = M_in
         P = P_in
         total_drag = 0
+        
+        # Drag on bottom faces:
         for i in range(len(self.turn_angles)):
             theta = self.turn_angles[i]
             location_angle = self.location_angles[i]
@@ -139,8 +143,55 @@ class inlet:
             force = P*length*self.width
             total_drag += force*np.sin(np.deg2rad(location_angle))
         
-        return total_drag        
+        # Drag on throat area:
+        throat_area = np.sqrt((self.xs[-1]-self.x_lip)**2+(self.ys[-1]-self.y_lip)**2)*self.width
+        throat_angle = np.arctan((self.xs[-1]-self.x_lip)/(self.ys[-1]-self.y_lip))
+        # If we say inlet CV is before NS:
+        _, _, _, _, throat_pressure, _ = self.output_properties(P_in, T_in, M_in)
+        # If we say inlet CV is after NS:
+        # _, throat_pressure, _, _, _, _ = self.output_properties(P_in, T_in, M_in)
+        total_drag += throat_area*throat_pressure*np.cos(throat_angle)
         
+        # Drag on lip upper surface:
+        lip_slope = (self.ys[-1]-self.ys[-2])/(self.xs[-1]-self.xs[-2])
+        lip_angle = np.arctan(lip_slope)
+        lip_length = np.sqrt((self.x_lip-self.xs[-1])**2+(lip_slope*(self.xs[-1]-self.x_lip))**2)
+        if M_in == self.M_max:
+            # If we say no OS forms at the lip:
+            # P_lip = P_in
+            # If we say an OS forms at the lip:
+            _, Pr, _, _, _= mach_function(M_in, self.gamma, np.degrees(lip_angle))
+            P_lip = P_in * Pr
+        else:
+            _, _, _, _, P_lip, _ = self.output_properties(P_in, T_in, M_in)
+        
+        total_drag += lip_length*self.width*P_lip*np.sin(lip_angle)
+        
+        return total_drag
+    
+    def get_inlet_momentum_flux(self, P_in, T_in, M_in):
+        """
+        Get momentum flux in the x-direction through inlet throat. This is a positive number, may have to be to be made negative
+        Parameters
+        P_in : input pressure, Pa
+        T_in : input temperature, K
+        M_in : input mach number
+        Returns
+        Momentum flux through inlet, N
+        """
+        # If inlet CV is before NS:
+        _, _, _, M_inlet, P_inlet, T_inlet = self.output_properties(P_in, T_in, M_in)
+        # If inlet CV is after NS:
+        # M_inlet, P_inlet, T_inlet, _, _, _ = self.output_properties(P_in, T_in, M_in)
+        
+        rho_inlet = P_inlet/(R_air*T_inlet)
+        a_inlet = get_speed_of_sound(T_inlet)
+        throat_area = np.sqrt((self.xs[-1]-self.x_lip)**2+(self.ys[-1]-self.y_lip)**2)*self.width
+        throat_angle = np.arctan((self.xs[-1]-self.x_lip)/(self.ys[-1]-self.y_lip))
+        
+        return rho_inlet*(a_inlet*M_inlet)**2*throat_area*np.cos(throat_angle)        
+        
+            
 if __name__ == "__main__":
     i = inlet(9112.32, 216.65, 3.25, 1, [5, 5, 5])
     ax = plt.subplot()
@@ -156,3 +207,5 @@ if __name__ == "__main__":
     rho = P/(R_air*T)
     a = get_speed_of_sound(T)
     print(f"m_dot at throat = {M*a*rho*inlet_width*1}")
+    print(f"total pressure drag: {i.get_pressure_drag(9112, 216, 3) N}")
+    print(f"inlet momentum flux: {i.get_inlet_momentum_flux(9112, 216, 3)} N")
