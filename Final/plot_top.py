@@ -12,7 +12,7 @@ from inlet import inlet as Inlet
 def circle_top(xs, x_c, y_c, r):
     return y_c+np.sqrt(r**2-(x_c-xs)**2)
 
-def plot_top(ax, inlet, x_offset, y_offset, x_end, top_thickness, inner_format="b", outer_format="k"):
+def plot_top(ax, inlet, x_offset, y_offset, x_end):
     """
     plots top surface
     Parameters
@@ -21,9 +21,6 @@ def plot_top(ax, inlet, x_offset, y_offset, x_end, top_thickness, inner_format="
     x_offset : x offset
     y_offset: y offset
     x_end : x to end at
-    top_thickness : thickness of top surface
-    inner_format : format code for inner surface. The default is "b".
-    outer_format : format code for outer surface. The default is "k".
     Returns:
     inner_coords: list of (x, y) pairs for bottom surface
     outer_coords: list of (x, y) pairs for top surface
@@ -73,8 +70,8 @@ def plot_top(ax, inlet, x_offset, y_offset, x_end, top_thickness, inner_format="
     xs_bottom = [i[0] for i in inner_coords]
     ys_bottom = [i[1] for i in inner_coords]
     
-    ax.plot(xs_top, ys_top, outer_format)
-    ax.plot(xs_bottom, ys_bottom, inner_format)
+    ax.plot(xs_top, ys_top)
+    ax.plot(xs_bottom, ys_bottom)
     
     return inner_coords, outer_coords
     

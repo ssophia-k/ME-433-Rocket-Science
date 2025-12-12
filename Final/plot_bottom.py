@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-def plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s):
+def plot_bottom(ax, inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s):
     """
     Plots the bottom piece of ramjet
 
@@ -13,6 +13,7 @@ def plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s):
     h5s : height of converging section
     x6s : x coordinates of nozzle
     h6s : height of nozzle
+    ax : matplotlib axis object to plot on
 
     Outputs:
     top_face : list of points for top face
@@ -39,14 +40,9 @@ def plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s):
         point[1] = -point[1] + (prev_y + diffuser_df['y'].iloc[0])
     top_face.extend(diffuser_points)
 
-    print(f"x-diff: {top_face[-1][0]-prev_x}")
-
     prev_point = top_face[-1]
     prev_x = prev_point[0]
     prev_y = prev_point[1]
-
-    print(f"prev_x: {prev_x}, prev_y: {prev_y}")
-    print(f"combustor height: {combustor_dict['height_m']}")
     
     # Combustor
     combustor_point = (combustor_dict['length_m'] + prev_x, combustor_dict['height_m']+(prev_y-combustor_dict['height_m']))
@@ -93,10 +89,8 @@ def plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s):
     bx = [p[0] for p in bottom_face]
     by = [p[1] for p in bottom_face]
 
-    plt.figure(figsize=(10,4))
-    plt.plot(xs, ys)
-    plt.plot(bx, by)
-    plt.axis('equal')
-    plt.show()
+    ax.plot(xs, ys, label='Top face')
+    ax.plot(bx, by, label='Bottom face')
+    ax.axis('equal')
 
     return top_face, bottom_face, length_of_front, angle_of_front

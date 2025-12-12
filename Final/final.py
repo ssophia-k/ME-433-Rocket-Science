@@ -13,9 +13,7 @@ from flameholder import flameholder
 from combustor import solve_combustor_length
 from converging_section import design_converging_section
 from nozzle import design_nozzle
-
 from thrust_calc import calculate_thrust
-
 from plot_top import plot_top
 from plot_bottom import plot_bottom
 
@@ -75,12 +73,50 @@ P6 = P6s[-1]
 T6 = T6s[-1]
 M6 = M6s[-1]
 
-# Stitch, plot top profile:
-top_face, bottom_face, length_of_front, angle_of_front = plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s)
+# Plot Profile
+print(f"Inlet height: {(inlet.y_lip-0)}")
+print(f"Outlet height: {h6s[-1]}")
+inlet_length = inlet.xs[-1]
+combustor_length = combustor_dict["length_m"]
+nozzle_length = x6s[-1]-x6s[0]
+total_length = inlet_length+diffuser_length+combustor_length+converging_length+nozzle_length
 
+fig, ax = plt.subplots(figsize=(12, 6))
+
+# Plot the top surface
+inner_coords, outer_coords = plot_top(
+    ax, 
+    inlet, 
+    x_offset=0,
+    y_offset=0,
+    x_end=total_length,
+)
+
+# Plot the bottom surface
+top_face, bottom_face, length_of_front, angle_of_front = plot_bottom(
+    ax,
+    inlet,
+    diffuser_df,
+    combustor_dict,
+    x5s,
+    h5s,
+    x6s,
+    h6s
+)
+
+ax.set_xlabel('x (m)')
+ax.set_ylabel('y (m)')
+ax.set_title('Complete Ramjet Geometry')
+ax.legend()
+ax.grid(True, alpha=0.3)
+ax.axis('equal')
+
+plt.tight_layout()
+plt.show()
+
+# Calculate Thrust
 thrust = calculate_thrust(inlet, P_atm, M_atm, T_atm, P6, M6, T6, A6s[-1], length_of_front, angle_of_front, width)
 print(f"{thrust=} N")
-
 
 print(f"{M1=}")
 print(f"{T1=}")
@@ -100,13 +136,3 @@ print(f"{P5=}")
 print(f"{M6=}")
 print(f"{T6=}")
 print(f"{P6=}")
-
-print(f"Inlet height: {(inlet.y_lip-0)}")
-print(f"Outlet height: {h6s[-1]}")
-
-inlet_length = inlet.xs[-1]
-combustor_length = combustor_dict["length_m"]
-nozzle_length = x6s[-1]-x6s[0]
-
-total_length = inlet_length+diffuser_length+combustor_length+converging_length+nozzle_length
-print(f"Total length: {total_length} m")
