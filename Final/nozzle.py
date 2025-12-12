@@ -420,6 +420,71 @@ def nozzle(P5, T5, M5, m_dot, P_exit, depth, n_characteristics=300):
 
     return P, T, M, m_dot, A, h, x
 
+def nozzle_q1d_analysis(h6s, P5, T5, M5, depth):
+    # Helper Functions
+    def bisection_method(function, value, tolerance, left_bound=0, right_bound=47000):
+        a = left_bound
+        b = right_bound
+        fa = function(a) - value
+        fb = function(b) - value
+
+        if abs(fa) < 1e-9:
+            return a
+        if abs(fb) < 1e-9:
+            return b
+
+        if fa * fb > 0:
+            raise ValueError("Balloon will never reach equilibrium")
+        while (b - a) > tolerance:
+            c = (a + b) / 2
+            fc = function(c) - value
+            if abs(fc) < 1e-9:
+                return c
+            if fa * fc < 0:
+                b, fb = c, fc
+            else:
+                a, fa = c, fc
+        return (a + b) / 2
+
+    def area_mach_function(M):
+        """
+        Inputs:
+            M: Mach number (dimensionless)
+
+        Outputs:
+            A/A*: Area ratio (dimensionless)
+        """
+        return np.sqrt((1/M**2) * ((2/(gamma+1))*(1 + (gamma-1)/2 * M**2))**((gamma+1)/(gamma-1)))
+    
+    # Stagnation properties from static
+    P0 = P5 * (1 + (gamma-1)/2 * M5**2)**(gamma/(gamma-1))
+    T0 = T5 * (1 + (gamma-1)/2 * M5**2)
+    # Throat Area
+    A_throat = h6s[0] * depth
+
+    # Area ratio at each wall point
+    A = h6s * depth
+    A_ratio = A / A_throat
+
+    # Mach at each point
+    Ms = []
+    for i, ar in enumerate(A_ratio):
+        if i == 0:
+            M = M5  # Throat
+        else:
+            M = bisection_method(area_mach_function, ar, 1e-9, 1.001, 10.0)
+        Ms.append(M)
+
+    Ms = np.array(Ms)
+
+    # Pressure and temperature ratios
+    p_p0 = 1 / ((1 + (gamma-1)/2 * Ms**2)**(gamma/(gamma-1)))
+    T_T0 = 1 / (1 + (gamma-1)/2 * Ms**2)
+    Ps = p_p0 * P0
+    Ts = T_T0 * T0
+
+    return Ps, Ts, Ms
+
 if __name__ == "__main__":
     P4 = 200000
     T4 = 2000
@@ -437,6 +502,7 @@ if __name__ == "__main__":
     A5 = A_conv[-1]
     h5 = h_conv[-1]
 
+    print("Section 5")
     print(f"P5 = {P5} Pa")
     print(f"T5 = {T5} K")
     print(f"M5 = {M5}")
@@ -455,6 +521,7 @@ if __name__ == "__main__":
     A6 = A_nozzle[-1]
     h6 = h_nozzle[-1]
 
+    print("Section 6")
     print(f"P6 = {P6} Pa")
     print(f"T6 = {T6} K")
     print(f"M6 = {M6}")
@@ -523,4 +590,40 @@ if __name__ == "__main__":
     plt.legend()
     plt.grid(True)
     plt.axis('equal')
+    plt.show()
+
+    # Off-Design Quasi 1-D Analysis
+    P5 = 90000.82689383549
+    T5 = 1300
+    M5 = 1
+
+    Ps, Ts, Ms = nozzle_q1d_analysis(h_nozzle, P5, T5, M5, depth)
+
+    print("Off-Design Quasi 1-D Analysis")
+    print(f"P6 = {Ps[-1]} Pa")
+    print(f"T6 = {Ts[-1]} K")
+    print(f"M6 = {Ms[-1]}")
+
+    plt.figure()
+    plt.plot(x_nozzle, Ps, linewidth=2)
+    plt.xlabel('x (m)')
+    plt.ylabel('P (Pa)')
+    plt.title('Off-Design Quasi 1-D Analysis: Pressure')
+    plt.grid(True)
+    plt.show()
+
+    plt.figure()
+    plt.plot(x_nozzle, Ts, linewidth=2)
+    plt.xlabel('x (m)')
+    plt.ylabel('T (K)')
+    plt.title('Off-Design Quasi 1-D Analysis: Temperature')
+    plt.grid(True)
+    plt.show()
+
+    plt.figure()
+    plt.plot(x_nozzle, Ms, linewidth=2)
+    plt.xlabel('x (m)')
+    plt.ylabel('M')
+    plt.title('Off-Design Quasi 1-D Analysis: Mach Number')
+    plt.grid(True)
     plt.show()
