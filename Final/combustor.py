@@ -10,130 +10,280 @@ from Tools.constants import *
 from Tools.misc_functions import get_speed_of_sound
 from Tools.isentropic import *
 
-def evaluate_combustor(length, M_in, P_in, T_in, m_dot_air, width):
+# def get_max_fuel_flow_for_choke(M_in, P_in, T_in, m_dot_air, width):
+#     # Constants
+#     gamma = gamma_air
+#     R = R_air      # J/(kg*K)
+#     cp = C_p_air     # J/(kg*K)
+#     LHV_H2 = 120e6  # 120 MJ/kg = 120,000,000 J/kg
+
+#     # Get starting height
+#     u_in = M_in * get_speed_of_sound(T_in)
+#     rho_in = P_in / (R * T_in)
+#     area_in = m_dot_air / (rho_in * u_in)
+#     height_in = area_in / width
+
+
+# def evaluate_combustor(length, M_in, P_in, T_in, m_dot_air, width, m_dot_fuel):
+#     """
+#     Calculates the exit state and maximum fuel capability for a FIXED length 
+#     combustor. 
+    
+#     Iteratively solves for the Exit Mach number (M_out) such that the 
+#     required Rayleigh burn length equals the provided physical length.
+    
+#     Returns a dictionary of flow properties
+#     """
+
+#     # Constants
+#     gamma = gamma_air
+#     R = R_air
+#     cp = C_p_air
+#     LHV_H2 = 120e6 
+
+#     # Inlet state
+#     u_in = M_in * get_speed_of_sound(T_in)
+#     rho_in = P_in / (R * T_in)
+    
+#     # Geometry
+#     area_in = m_dot_air / (rho_in * u_in)
+#     height = area_in / width
+    
+#     # Stagnation and star quantities
+#     T0_in = T_in * T0_T(M_in, gamma)
+#     T0_star = T0_in / T0_T0star(M_in, gamma)
+#     P_star = P_in / P_Pstar(M_in, gamma)
+
+#     # ------------------------------------------------
+#     # SOLVER: MATCH LENGTH TO M_OUT
+
+#     def get_req_length(M_target):
+#         """
+#         Calculates the required tube length to support the heat addition
+#         associated with accelerating from M_in to M_target.
+#         """
+#         # Exit Temperatures/Pressures at M_target
+#         # Static Temp
+#         T0_target = T0_star * T0_T0star(M_target, gamma)
+#         T_target = T0_target / T0_T(M_target, gamma)
+        
+#         # Static Pressure
+#         P_target = P_star * P_Pstar(M_target, gamma)
+        
+#         # Velocity
+#         a_target = get_speed_of_sound(T_target)
+#         u_target = M_target * a_target
+        
+#         # Averages
+#         u_avg = (u_in + u_target) / 2.0
+#         T0_avg = (T0_in + T0_target) / 2.0
+#         P_avg_Pa = (P_in + P_target) / 2.0
+#         P_avg_atm = P_avg_Pa / P_sea
+        
+#         # Burn Time (Tau)
+#         tau_ms = 325 * (P_avg_atm**(-1.6)) * np.exp(-0.8 * (T0_avg / 1000.0))
+#         tau_sec = tau_ms / 1000.0
+        
+#         # Required Length
+#         return u_avg * tau_sec
+
+#     # Check limits:
+#     # 1. Length required for minimal heat (M ~ M_in). 
+#     # If physical length < L_min, we cannot sustain combustion (0 fuel).
+#     L_min = get_req_length(M_in + 1e-6)
+    
+#     # 2. Length required for Max heat (M = 1.0, choke).
+#     L_max = get_req_length(1.0)
+    
+#     is_choked = False
+    
+#     if length < L_min:
+#         # combustor too short to support reaction ignition/stability
+#         M_out = M_in
+#         calc_len = L_min
+#     elif length >= L_max:
+#         # combustor is long enough to choke the flow
+#         M_out = 1.0
+#         is_choked = True
+#         calc_len = L_max
+#     else:
+#         # Solve for M_out such that get_req_length(M_out) == length
+#         M_out = numerical_iterator(
+#             func=get_req_length,
+#             start=M_in + 1e-6,
+#             end=1.0 - 1e-9,
+#             goal_y=length
+#         )
+#         calc_len = length
+
+#     # ------------------------------------------------
+#     # FINAL OUTPUT CALCULATION
+    
+#     # Final properties based on solved M_out
+#     P_out = P_star * P_Pstar(M_out, gamma)
+    
+#     T0_out = T0_star * T0_T0star(M_out, gamma)
+    
+#     T_out = T0_out / T0_T(M_out, gamma)
+#     a_out = get_speed_of_sound(T_out)
+#     u_out = M_out * a_out
+    
+#     u_avg = (u_in + u_out) / 2.0
+    
+#     # Calculate Fuel Flow from Energy Balance
+#     # q = cp * (T0_out - T0_in)
+#     q_added = cp * (T0_out - T0_in)
+    
+#     # m_dot_fuel = (m_dot_air * q) / LHV
+#     # Note: This ignores mass addition in the conservation, consistent with Rayleigh model
+#     m_dot_fuel = (m_dot_air * q_added) / LHV_H2
+    
+#     # Re-calc burn time for reporting
+#     P_avg_final = (P_in + P_out) / 2.0 / P_sea
+#     T0_avg_final = (T0_in + T0_out) / 2.0
+#     tau_final_ms = 325 * (P_avg_final**(-1.6)) * np.exp(-0.8 * (T0_avg_final / 1000.0))
+
+#     return {
+#         "m_dot_fuel_kg_s": m_dot_fuel,
+#         "height_m": height,
+#         "length_m": length,
+#         "burn_time_ms": tau_final_ms,
+#         "is_choked": is_choked,
+#         "M_in": M_in,
+#         "M_out": M_out,
+#         "T0_in": T0_in,
+#         "T0_out": T0_out,
+#         "T_in": T_in,
+#         "T_out": T_out,
+#         "P_in": P_in,
+#         "P_out": P_out,
+#         "U_avg": u_avg
+#     }
+
+def evaluate_combustor(length, M_in, P_in, T_in, m_dot_air, width, m_dot_fuel):
     """
-    Calculates the exit state and maximum fuel capability for a FIXED length 
-    combustor. 
-    
-    Iteratively solves for the Exit Mach number (M_out) such that the 
-    required Rayleigh burn length equals the provided physical length.
-    
-    Returns a dictionary of flow properties and the calculated fuel mass flow.
+    Evaluates combustor exit properties for a FIXED length combustor
+    given a specified fuel mass flow rate (m_dot_fuel).
+
+    Uses Rayleigh-flow relations to:
+      1) Convert fuel flow -> heat addition -> target T0_out
+      2) Solve for M_out implied by that T0_out (capped at choking, M=1)
+      3) Compute the required reaction length for that M_out and report
+         whether the physical length is sufficient.
+
+    Returns a dictionary of flow properties.
     """
 
     # Constants
     gamma = gamma_air
     R = R_air
     cp = C_p_air
-    LHV_H2 = 120e6 
+    LHV_H2 = 120e6
 
     # Inlet state
     u_in = M_in * get_speed_of_sound(T_in)
     rho_in = P_in / (R * T_in)
-    
+
     # Geometry
     area_in = m_dot_air / (rho_in * u_in)
     height = area_in / width
-    
-    # Stagnation and star quantities
+
+    # Stagnation and star quantities (Rayleigh reference)
     T0_in = T_in * T0_T(M_in, gamma)
     T0_star = T0_in / T0_T0star(M_in, gamma)
     P_star = P_in / P_Pstar(M_in, gamma)
 
     # ------------------------------------------------
-    # SOLVER: MATCH LENGTH TO M_OUT
-
+    # Required-length model (same as your original)
     def get_req_length(M_target):
-        """
-        Calculates the required tube length to support the heat addition
-        associated with accelerating from M_in to M_target.
-        """
-        # Exit Temperatures/Pressures at M_target
-        # Static Temp
+        # Exit temperatures/pressures at M_target
         T0_target = T0_star * T0_T0star(M_target, gamma)
         T_target = T0_target / T0_T(M_target, gamma)
-        
-        # Static Pressure
+
         P_target = P_star * P_Pstar(M_target, gamma)
-        
-        # Velocity
+
         a_target = get_speed_of_sound(T_target)
         u_target = M_target * a_target
-        
+
         # Averages
         u_avg = (u_in + u_target) / 2.0
         T0_avg = (T0_in + T0_target) / 2.0
         P_avg_Pa = (P_in + P_target) / 2.0
         P_avg_atm = P_avg_Pa / P_sea
-        
-        # Burn Time (Tau)
-        tau_ms = 325 * (P_avg_atm**(-1.6)) * np.exp(-0.8 * (T0_avg / 1000.0))
+
+        # Burn time (tau)
+        tau_ms = 325 * (P_avg_atm ** (-1.6)) * np.exp(-0.8 * (T0_avg / 1000.0))
         tau_sec = tau_ms / 1000.0
-        
-        # Required Length
+
         return u_avg * tau_sec
 
-    # Check limits:
-    # 1. Length required for minimal heat (M ~ M_in). 
-    # If physical length < L_min, we cannot sustain combustion (0 fuel).
-    L_min = get_req_length(M_in + 1e-6)
-    
-    # 2. Length required for Max heat (M = 1.0, choke).
-    L_max = get_req_length(1.0)
-    
+    # ------------------------------------------------
+    # Fuel -> heat addition -> target T0_out
+    # q_added per kg air = (m_dot_fuel * LHV) / m_dot_air
+    q_added = (m_dot_fuel * LHV_H2) / m_dot_air
+    T0_out_target = T0_in + q_added / cp
+
+    # Rayleigh max (choking) stagnation temperature at M=1
+    T0_max = T0_star * T0_T0star(1.0, gamma)
+
+    # Determine M_out implied by T0_out_target (cap at choke)
     is_choked = False
-    
-    if length < L_min:
-        # combustor too short to support reaction ignition/stability
-        M_out = M_in
-        calc_len = L_min
-    elif length >= L_max:
-        # combustor is long enough to choke the flow
+    fuel_limited_by_choke = False
+
+    if T0_out_target >= T0_max:
+        # Requested fuel would drive beyond choke; cap at M=1 (Rayleigh limit)
         M_out = 1.0
         is_choked = True
-        calc_len = L_max
+        fuel_limited_by_choke = True
+        T0_out = T0_max
     else:
-        # Solve for M_out such that get_req_length(M_out) == length
+        # Solve T0_star * T0_T0star(M_out) = T0_out_target
+        def T0_from_M(M):
+            return T0_star * T0_T0star(M, gamma)
+
         M_out = numerical_iterator(
-            func=get_req_length,
-            start=M_in + 1e-6,
+            func=T0_from_M,
+            start=M_in + 1e-9,
             end=1.0 - 1e-9,
-            goal_y=length
+            goal_y=T0_out_target
         )
-        calc_len = length
+        T0_out = T0_out_target
+
+    # If we capped at choke, compute the corresponding max fuel that can be “accepted” by Rayleigh
+    q_added_max = cp * (T0_max - T0_in)
+    m_dot_fuel_max = (m_dot_air * q_added_max) / LHV_H2
 
     # ------------------------------------------------
-    # FINAL OUTPUT CALCULATION
-    
-    # Final properties based on solved M_out
+    # Now compute exit static properties from M_out
     P_out = P_star * P_Pstar(M_out, gamma)
-    
-    T0_out = T0_star * T0_T0star(M_out, gamma)
-    
     T_out = T0_out / T0_T(M_out, gamma)
     a_out = get_speed_of_sound(T_out)
     u_out = M_out * a_out
-    
     u_avg = (u_in + u_out) / 2.0
-    
-    # Calculate Fuel Flow from Energy Balance
-    # q = cp * (T0_out - T0_in)
-    q_added = cp * (T0_out - T0_in)
-    
-    # m_dot_fuel = (m_dot_air * q) / LHV
-    # Note: This ignores mass addition in the conservation, consistent with Rayleigh model
-    m_dot_fuel = (m_dot_air * q_added) / LHV_H2
-    
-    # Re-calc burn time for reporting
-    P_avg_final = (P_in + P_out) / 2.0 / P_sea
+
+    # Required length for this heat addition / M_out
+    L_required = get_req_length(M_out)
+    length_ok = (length >= L_required)
+
+    # For reporting: burn time with final average conditions
+    P_avg_final = ((P_in + P_out) / 2.0) / P_sea
     T0_avg_final = (T0_in + T0_out) / 2.0
-    tau_final_ms = 325 * (P_avg_final**(-1.6)) * np.exp(-0.8 * (T0_avg_final / 1000.0))
+    tau_final_ms = 325 * (P_avg_final ** (-1.6)) * np.exp(-0.8 * (T0_avg_final / 1000.0))
 
     return {
-        "m_dot_fuel_kg_s": m_dot_fuel,
+        # Inputs / limits
+        "m_dot_fuel_cmd_kg_s": m_dot_fuel,
+        "m_dot_fuel_max_kg_s": m_dot_fuel_max,
+        "fuel_limited_by_choke": fuel_limited_by_choke,
+
+        # Geometry / residence
         "height_m": height,
         "length_m": length,
+        "L_required_m": L_required,
+        "length_ok": length_ok,
         "burn_time_ms": tau_final_ms,
+
+        # Flow state
         "is_choked": is_choked,
         "M_in": M_in,
         "M_out": M_out,
@@ -145,6 +295,7 @@ def evaluate_combustor(length, M_in, P_in, T_in, m_dot_air, width):
         "P_out": P_out,
         "U_avg": u_avg
     }
+
 
 
 def solve_combustor_length(M_in, P_in, T_in, m_dot_air, width, m_dot_fuel):
@@ -279,7 +430,8 @@ def solve_combustor_length(M_in, P_in, T_in, m_dot_air, width, m_dot_fuel):
         "T_out": T_out,
         "P_in": P_in,
         "P_out": P_out,
-        "U_avg": u_avg
+        "U_avg": u_avg,
+        "m_dot_fuel": m_dot_fuel
     }
 
 # ==========================================

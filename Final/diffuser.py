@@ -24,10 +24,11 @@ def evaluate_diffuser(x_vals, y_vals, M_in, P_in, T_in, width):
     R = R_air
 
     # Get starting height
-    u_in = M_in * get_speed_of_sound(T_in)
-    rho_in = P_in / (R * T_in)
-    area_in = m_dot / (rho_in * u_in)
-    height_in = area_in / width
+    area_in = y_vals[0] * width
+    # u_in = M_in * get_speed_of_sound(T_in)
+    # rho_in = P_in / (R * T_in)
+    # area_in = m_dot / (rho_in * u_in)
+    # height_in = area_in / width
 
     # Establish Stagnation Properties (Constant throughout the diffuser)
     P0 = get_P0_from_static(P_in, M_in, gamma)
@@ -42,10 +43,10 @@ def evaluate_diffuser(x_vals, y_vals, M_in, P_in, T_in, width):
         p_static = P0 / P0_P(M, gamma)
         T_static = T0 / T0_T(M, gamma)
 
-        results.append([x, y, y*width, M, p_static, T_static])
+        results.append([x, y, y*width, M, p_static, T_static, P0, T0])
     
     # Convert to DataFrame
-    df = pd.DataFrame(results, columns=['x', 'y', 'area', 'Mach', 'Pressure', 'Temperature'])
+    df = pd.DataFrame(results, columns=['x', 'y', 'area', 'Mach', 'Pressure', 'Temperature', 'Stag Pressure', 'Stag Temperature'])
 
     return df
 

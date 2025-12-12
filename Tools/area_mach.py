@@ -15,6 +15,7 @@ def get_T0_from_static(T, M, gamma=1.4):
     """Calculate Total Temp from Static Temp and Mach."""
     return T * (1 + (gamma - 1)/2 * M**2)
 
+
 def get_area_from_mach(M, A_star, gamma=1.4):
     """
     Calculates Area A for a given Mach number using Isentropic relation.

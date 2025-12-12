@@ -138,13 +138,16 @@ def analyze_converging_section(hs, P4, T4, M4, depth):
         A_ratio_sq = area_ratio**2
         M_solutions = inverse_area_mach_relation(A_ratio_sq, gamma)
         M_subsonic = M_solutions[0]  # Take subsonic solution
-        M_values.append(M_subsonic)
+        if np.isnan(M_subsonic):
+            M_values.append(M_solutions[1])
+        else:
+            M_values.append(M_subsonic)
 
     Ms = np.array(M_values)
 
     # Calculate pressure and temperature ratios
-    p_over_p0 = 1/((1 + (gamma-1)/2 * M**2)**(gamma/(gamma-1)))
-    T_over_T0 = 1/(1 + (gamma-1)/2 * M**2)
+    p_over_p0 = 1/((1 + (gamma-1)/2 * Ms**2)**(gamma/(gamma-1)))
+    T_over_T0 = 1/(1 + (gamma-1)/2 * Ms**2)
 
     # Calculate static properties
     Ps = p_over_p0 * P04
