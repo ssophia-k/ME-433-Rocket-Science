@@ -2,6 +2,25 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 def plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s):
+    """
+    Plots the bottom piece of ramjet
+
+    Inputs:
+    inlet : inlet object
+    diffuser_df : diffuser dataframe
+    combustor_dict : combustor dictionary
+    x5s : x coordinates of converging section
+    h5s : height of converging section
+    x6s : x coordinates of nozzle
+    h6s : height of nozzle
+
+    Outputs:
+    top_face : list of points for top face
+    bottom_face : list of points for bottom face
+    length_of_front : length of front face
+    angle_of_front : angle of front face
+    """
+    
     # Top face
     top_face = []
 

@@ -37,7 +37,6 @@ def plot_top(ax, inlet, x_offset, y_offset, x_end, top_thickness, inner_format="
     
     slope = (inlet.ys[-1]-inlet.ys[-2])/(inlet.xs[-1]-inlet.xs[-2])
     ax.plot([inlet.x_lip+x_offset, x_c+x_offset, x_end+x_offset], [inlet.y_lip+y_offset, inlet.y_lip+slope*(x_c-inlet.x_lip)+y_offset, inlet.y_lip+slope*(x_c-inlet.x_lip)+y_offset], outer_format)
- 
     
 if __name__ == "__main__":
      P_atm = 9112.32  # Pa
@@ -57,6 +56,4 @@ if __name__ == "__main__":
      ax = plt.subplot()
      plot_top(ax, inlet, 0, 0, 1, 0.005)
      ax.set_aspect("equal")
-     plt.xlim(0.1, 0.2)
-     plt.ylim(0.05, 0.1)
      plt.show()
