@@ -7,8 +7,6 @@ import os, sys
 from pathlib import Path
 sys.path.insert(0,os.fspath(Path(__file__).parents[1]))
 
-from Tools.misc_functions import get_speed_of_sound
-from Tools.constants import R_air
 
 from inlet import inlet as Inlet
 from diffuser import find_diffuser
@@ -16,6 +14,8 @@ from flameholder import flameholder
 from combustor import solve_combustor_length
 from converging_section import design_converging_section
 from nozzle import design_nozzle
+
+from thrust_calc import calculate_thrust
 
 from plot_top import plot_top
 from plot_bottom import plot_bottom
@@ -114,22 +114,12 @@ nozzle_df = pd.DataFrame({
 })
 nozzle_df.to_pickle('Final/profiles/nozzle_df.pkl')
 
-thrust_estimate = (P6*A6s[-1] + m_dot*get_speed_of_sound(T6)*M6) - (P_atm*(inlet.y_lip-0)*width+m_dot*get_speed_of_sound(T_atm)*M_atm)
-print(f"Thrust estimate: {thrust_estimate} N")
+# Stitch, plot top profile:
+top_face, bottom_face, length_of_front, angle_of_front = plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s)
 
-pressure_force_inlet = inlet.get_pressure_drag(P_atm, T_atm, M_atm)
-momentum_flux_inlet = inlet.get_inlet_momentum_flux(P_atm, T_atm, M_atm)
+thrust = calculate_thrust(inlet, P_atm, M_atm, T_atm, P6, M6, T6, A6s[-1], length_of_front, angle_of_front, width)
+print(f"{thrust=} N")
 
-pressure_force_outlet = P6*A6s[-1]  # Note: this doesn't account for any possible wall thickness at the outlet
-rho_outlet = P6/(R_air*T6)
-a_outlet = get_speed_of_sound(T6)
-momentum_flux_outlet = rho_outlet*(a_outlet*M6)**2*A6s[-1]
-
-# TODO: add bottom face here
-#bottom_x
-
-thrust = momentum_flux_outlet + pressure_force_outlet - momentum_flux_inlet - pressure_force_inlet
-print(f"Actual thrust: {thrust} N")
 
 print(f"{M1=}")
 print(f"{T1=}")
@@ -159,5 +149,3 @@ nozzle_length = x6s[-1]-x6s[0]
 
 total_length = inlet_length+diffuser_length+combustor_length+converging_length+nozzle_length
 print(f"Total length: {total_length} m")
-
-top_face, bottom_face = plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s)
