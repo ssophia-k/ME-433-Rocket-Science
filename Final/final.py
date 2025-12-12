@@ -22,15 +22,15 @@ from plot_bottom import plot_bottom
 # Atmosphere:
 P_atm = 9112.32  # Pa
 T_atm = 216.65  # K
-M_atms = np.linspace(2.75, 3.25)
-M_atms = [3.25]
+M_atm = 3.25
+
 
 # Basic properties:
 m_dot = 10  # kg/s
 width = 1  # m
 
 # Inlet:
-M_max = M_atms[-1]
+M_max = M_atm
 turn_angles = [10, 10, 10]  # turn angles of inlet, degrees
 inlet = Inlet(P_atm, T_atm, M_max, m_dot, turn_angles, width=width)
 
@@ -48,49 +48,49 @@ converging_length = 0.1  # m
 # Nozzle:
 P_exit_nozz = P_atm
 
-for M_atm in M_atms:
-    M1, P1, T1, _, _, _ = inlet.output_properties(P_atm, T_atm, M_atm)
-    
-    diffuser_df = find_diffuser(M1, P1, T1, m_dot, width, M_exit_diffuser, diffuser_length, Resolution)
-    M2 = diffuser_df['Mach'].iloc[-1]
-    P2 = diffuser_df['Pressure'].iloc[-1]
-    T2 = diffuser_df['Temperature'].iloc[-1]
-    
-    P3, M3 = flameholder(P2, M2)
-    T3 = T2
-    
-    combustor_dict = solve_combustor_length(M3, P3, T3, m_dot, width, m_dot_fuel)
-    if combustor_dict["is_choked"]:
-        print(f"Choked at {M_atm=}, {m_dot_fuel=}")
-    P4 = combustor_dict["P_out"]
-    T4 = combustor_dict["T_out"]
-    M4 = combustor_dict["M_out"]
-    
-    P5s, T5s, M5s, _, A5s, h5s, x5s = design_converging_section(P4, T4, M4, m_dot, converging_length, width)
-    P5 = P5s[-1]
-    T5 = T5s[-1]
-    M5 = M5s[-1]
-    
-    P6s, T6s, M6s, _, A6s, h6s, x6s = design_nozzle(P5, T5, M5, m_dot, P_exit_nozz, width)
-    P6 = P6s[-1]
-    T6 = T6s[-1]
-    M6 = M6s[-1]
+M1, P1, T1, _, _, _ = inlet.output_properties(P_atm, T_atm, M_atm)
 
-    thrust_estimate = (P6*A6s[-1] + m_dot*get_speed_of_sound(T6)*M6) - (P_atm*(inlet.y_lip-0)*width+m_dot*get_speed_of_sound(T_atm)*M_atm)
-    print(f"Thrust estimate: {thrust_estimate} N")
-    
-    pressure_force_inlet = inlet.get_pressure_drag(P_atm, T_atm, M_atm)
-    momentum_flux_inlet = inlet.get_inlet_momentum_flux(P_atm, T_atm, M_atm)
-    
-    pressure_force_outlet = P6*A6s[-1]  # Note: this doesn't account for any possible wall thickness at the outlet
-    rho_outlet = P6/(R_air*T6)
-    a_outlet = get_speed_of_sound(T6)
-    momentum_flux_outlet = rho_outlet*(a_outlet*M6)**2*A6s[-1]
-    
-    # TODO: add bottom face here
-    
-    thrust = momentum_flux_outlet + pressure_force_outlet - momentum_flux_inlet - pressure_force_inlet
-    print(f"Actual thrust: {thrust} N")
+diffuser_df = find_diffuser(M1, P1, T1, m_dot, width, M_exit_diffuser, diffuser_length, Resolution)
+M2 = diffuser_df['Mach'].iloc[-1]
+P2 = diffuser_df['Pressure'].iloc[-1]
+T2 = diffuser_df['Temperature'].iloc[-1]
+
+P3, M3 = flameholder(P2, M2)
+T3 = T2
+
+combustor_dict = solve_combustor_length(M3, P3, T3, m_dot, width, m_dot_fuel)
+if combustor_dict["is_choked"]:
+    print(f"Choked at {M_atm=}, {m_dot_fuel=}")
+P4 = combustor_dict["P_out"]
+T4 = combustor_dict["T_out"]
+M4 = combustor_dict["M_out"]
+
+P5s, T5s, M5s, _, A5s, h5s, x5s = design_converging_section(P4, T4, M4, m_dot, converging_length, width)
+P5 = P5s[-1]
+T5 = T5s[-1]
+M5 = M5s[-1]
+
+P6s, T6s, M6s, _, A6s, h6s, x6s = design_nozzle(P5, T5, M5, m_dot, P_exit_nozz, width)
+P6 = P6s[-1]
+T6 = T6s[-1]
+M6 = M6s[-1]
+
+thrust_estimate = (P6*A6s[-1] + m_dot*get_speed_of_sound(T6)*M6) - (P_atm*(inlet.y_lip-0)*width+m_dot*get_speed_of_sound(T_atm)*M_atm)
+print(f"Thrust estimate: {thrust_estimate} N")
+
+pressure_force_inlet = inlet.get_pressure_drag(P_atm, T_atm, M_atm)
+momentum_flux_inlet = inlet.get_inlet_momentum_flux(P_atm, T_atm, M_atm)
+
+pressure_force_outlet = P6*A6s[-1]  # Note: this doesn't account for any possible wall thickness at the outlet
+rho_outlet = P6/(R_air*T6)
+a_outlet = get_speed_of_sound(T6)
+momentum_flux_outlet = rho_outlet*(a_outlet*M6)**2*A6s[-1]
+
+# TODO: add bottom face here
+bottom_x
+
+thrust = momentum_flux_outlet + pressure_force_outlet - momentum_flux_inlet - pressure_force_inlet
+print(f"Actual thrust: {thrust} N")
 
 print(f"{M1=}")
 print(f"{T1=}")
