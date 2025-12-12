@@ -421,6 +421,20 @@ def nozzle(P5, T5, M5, m_dot, P_exit, depth, n_characteristics=300):
     return P, T, M, m_dot, A, h, x
 
 def nozzle_q1d_analysis(h6s, P5, T5, M5, depth):
+    """
+    Analyze nozzle with quasi-1D isentropic flow
+    
+    Inputs:
+        h6s: List of heights of nozzle design (m)
+        P5: Static pressure at section 5 (Pa)
+        T5: Static temperature at section 5 (K)
+        M5: Mach number at section 5 (dimensionless)
+        depth: Physical depth of nozzle (m)
+    
+    Outputs:
+        P, T, M: Arrays with axial distributions
+    """
+
     # Helper Functions
     def bisection_method(function, value, tolerance, left_bound=0, right_bound=47000):
         a = left_bound
