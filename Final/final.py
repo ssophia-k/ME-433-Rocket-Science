@@ -123,7 +123,7 @@ total_length = inlet_length+diffuser_length+combustor_length+converging_length+n
 fig, ax = plt.subplots(figsize=(12, 6))
 
 # Plot the top surface
-inner_coords, outer_coords = plot_top(
+inner_coords, outer_coords, top_profile_back_thickness = plot_top(
     ax, 
     inlet, 
     x_offset=0,
@@ -154,7 +154,6 @@ plt.tight_layout()
 plt.show()
 
 # Calculate Thrust
-top_profile_back_thickness = inner_coords[-1][1] - outer_coords[-1][1]
 thrust = calculate_thrust(inlet, P_atm, M_atm, T_atm, P6, M6, T6, A6s[-1], length_of_front, angle_of_front, top_profile_back_thickness, width)
 print(f"{thrust=} N")
 

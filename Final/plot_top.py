@@ -64,6 +64,10 @@ def plot_top(ax, inlet, x_offset, y_offset, x_end):
     # ax.plot([xs_circle[-1]+x_offset, x_end+x_offset], [ys_circle[-1]+y_offset, ys_circle[-1]+y_offset], inner_format)
     # ax.plot([inlet.x_lip+x_offset, x_c+x_offset, x_end+x_offset], [inlet.y_lip+y_offset, inlet.y_lip+slope*(x_c-inlet.x_lip)+y_offset, inlet.y_lip+slope*(x_c-inlet.x_lip)+y_offset], outer_format)
     
+    # For top profile back thickness
+    top_profile_back_thickness = inner_coords[-1][1] - outer_coords[-1][1]
+    outer_coords.append(inner_coords[-1])   # For plotting
+
     xs_top = [i[0] for i in outer_coords]
     ys_top = [i[1] for i in outer_coords]
     
@@ -73,7 +77,7 @@ def plot_top(ax, inlet, x_offset, y_offset, x_end):
     ax.plot(xs_top, ys_top)
     ax.plot(xs_bottom, ys_bottom)
     
-    return inner_coords, outer_coords
+    return inner_coords, outer_coords, top_profile_back_thickness
     
  
     
