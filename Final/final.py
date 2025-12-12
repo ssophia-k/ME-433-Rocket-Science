@@ -12,7 +12,7 @@ from Tools.constants import R_air
 from inlet import inlet as Inlet
 from diffuser import find_diffuser
 from flameholder import flameholder
-from combuster import solve_combustor_length
+from combustor import solve_combustor_length
 from converging_section import design_converging_section
 from nozzle import design_nozzle
 
