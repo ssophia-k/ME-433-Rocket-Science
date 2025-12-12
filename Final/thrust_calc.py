@@ -11,7 +11,7 @@ from Tools.oblique_shock import mach_function
 
 import numpy as np
 
-def calculate_thrust(inlet, P_in, M_in, T_in, P_out, M_out, T_out, A_out, front_length, front_angle, width):
+def calculate_thrust(inlet, P_in, M_in, T_in, P_out, M_out, T_out, A_out, front_length, front_angle, top_profile_back_thickness, width):
     """
     Calculate thrust
     Parameters
@@ -35,7 +35,7 @@ def calculate_thrust(inlet, P_in, M_in, T_in, P_out, M_out, T_out, A_out, front_
     pressure_force_inlet = inlet.get_pressure_drag(P_in, T_in, M_in)
     momentum_flux_inlet = inlet.get_inlet_momentum_flux(P_in, T_in, M_in)
     
-    pressure_force_outlet = P_out*A_out  # Note: this doesn't account for any possible wall thickness at the outlet
+    pressure_force_outlet = P_out*A_out + P_out*top_profile_back_thickness*width  # Note: this doesn't account for any possible wall thickness at the outlet
     rho_outlet = P_out/(R_air*T_out)
     a_outlet = get_speed_of_sound(T_out)
     momentum_flux_outlet = rho_outlet*(a_outlet*M_out)**2*A_out

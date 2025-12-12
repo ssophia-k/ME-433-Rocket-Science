@@ -154,7 +154,8 @@ plt.tight_layout()
 plt.show()
 
 # Calculate Thrust
-thrust = calculate_thrust(inlet, P_atm, M_atm, T_atm, P6, M6, T6, A6s[-1], length_of_front, angle_of_front, width)
+top_profile_back_thickness = inner_coords[-1][1] - outer_coords[-1][1]
+thrust = calculate_thrust(inlet, P_atm, M_atm, T_atm, P6, M6, T6, A6s[-1], length_of_front, angle_of_front, top_profile_back_thickness, width)
 print(f"{thrust=} N")
 
 print(f"{M1=}")
