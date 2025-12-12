@@ -121,4 +121,6 @@ nozzle_length = x6s[-1]-x6s[0]
 total_length = inlet_length+diffuser_length+combustor_length+converging_length+nozzle_length
 print(f"Total length: {total_length} m")
 
-top_face, bottom_face = plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s)
+top_face, bottom_face, length_of_front, angle_of_front = plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s)
+print(length_of_front)
+print(angle_of_front)

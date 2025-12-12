@@ -58,12 +58,21 @@ def plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s):
     # Bottom face
     bottom_face = []
     bottom_face.append(inlet_points[0])
+
+    interpolated_point = ((inlet_points[0][1]-top_face[-1][1])/(inlet_points[0][0]-top_face[-1][0]))*(inlet_points[0][0]-diffuser_points[-1][0])+top_face[-1][1]
+
+    if interpolated_point < diffuser_points[-1][1]:
+        corner_point = (diffuser_points[-1][0], top_face[-1][1])
+        length_of_front = np.sqrt((inlet_points[0][0] - corner_point[0])**2 + (inlet_points[0][1] - corner_point[1])**2)
+        angle_of_front = np.rad2deg(np.arctan((inlet_points[0][1] - corner_point[1])/(inlet_points[0][0] - corner_point[0])))
+        bottom_face.append(corner_point)
+
     bottom_face.append(top_face[-1])
 
     xs = [p[0] for p in top_face]
     ys = [p[1] for p in top_face]
-    bx = [bottom_face[0][0], bottom_face[1][0]]
-    by = [bottom_face[0][1], bottom_face[1][1]]
+    bx = [p[0] for p in bottom_face]
+    by = [p[1] for p in bottom_face]
 
     plt.figure(figsize=(10,4))
     plt.plot(xs, ys)
@@ -71,4 +80,4 @@ def plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s):
     plt.axis('equal')
     plt.show()
 
-    return top_face, bottom_face
+    return top_face, bottom_face, length_of_front, angle_of_front
