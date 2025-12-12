@@ -460,15 +460,20 @@ def analyze_nozzle(h6s, P5, T5, M5, depth):
                 a, fa = c, fc
         return (a + b) / 2
 
-    def area_mach_function(M):
-        """
-        Inputs:
-            M: Mach number (dimensionless)
+    def prandtl_meyer(M, gamma):
+        if M < 1:
+            return 0
+        nu = np.sqrt((gamma + 1) / (gamma - 1)) * np.arctan(np.sqrt((gamma - 1) / (gamma + 1) * (M**2 - 1))) - np.arctan(np.sqrt(M**2 - 1))
+        return nu
 
-        Outputs:
-            A/A*: Area ratio (dimensionless)
-        """
-        return np.sqrt((1/M**2) * ((2/(gamma+1))*(1 + (gamma-1)/2 * M**2))**((gamma+1)/(gamma-1)))
+    def inverse_PM(nu_target, gamma):
+        def PM_function(M):
+            return prandtl_meyer(M, gamma)
+        M = bisection_method(PM_function, nu_target, tolerance=1e-6, left_bound=1.0, right_bound=20.0)
+        return M
+
+    def mach_angle(M):
+        return np.arcsin(1.0 / M)
     
     # Stagnation properties from static
     P0 = P5 * (1 + (gamma-1)/2 * M5**2)**(gamma/(gamma-1))
@@ -476,26 +481,269 @@ def analyze_nozzle(h6s, P5, T5, M5, depth):
     # Throat Area
     A_throat = h6s[0] * depth
 
-    # Area ratio at each wall point
-    A = h6s * depth
-    A_ratio = A / A_throat
+    # Generate MOC solution (simplified for given wall)
+    n_characteristics = len(h6s)
+    height_throat = h6s[0]
+    M_throat = M5
+    x_corner = 0.0
+    y_corner = height_throat
+    y_centerline = 0.0
+    
+    # Estimate exit Mach from area ratio
+    A_exit = h6s[-1] * depth
+    area_ratio = A_exit / A_throat
+    
+    def area_mach_function(M):
+        return np.sqrt((1/M**2) * ((2/(gamma+1))*(1 + (gamma-1)/2 * M**2))**((gamma+1)/(gamma-1)))
+    
+    M_exit_estimate = bisection_method(area_mach_function, area_ratio, 1e-9, 1.001, 10.0)
+    
+    nu_exit = prandtl_meyer(M_exit_estimate, gamma)
+    theta_max = nu_exit / 2
+    
+    # Generate C- characteristics
+    c_minus_chars = []
+    for i in range(1, n_characteristics):
+        theta = i * theta_max / (n_characteristics - 1)
+        nu = theta
+        
+        M_char = inverse_PM(nu, gamma)
+        mu_char = mach_angle(M_char)
+        char_angle = theta - mu_char
+        K_minus = theta + nu
+        
+        c_minus_chars.append({
+            'theta': theta,
+            'nu': nu,
+            'M': M_char,
+            'K_minus': K_minus,
+            'char_angle': char_angle,
+            'path': [(x_corner, y_corner)],
+            'properties': [{
+                'M': M_char,
+                'p_p0': 1 / ((1 + (gamma-1)/2 * M_char**2)**(gamma/(gamma-1))),
+                'T_T0': 1 / (1 + (gamma-1)/2 * M_char**2),
+                'theta': theta,
+                'nu': nu,
+                'K_minus': K_minus
+            }]
+        })
+    
+    c_plus_chars = []
+    
+    # Simplified MOC propagation
+    for layer in range(len(c_minus_chars)):
+        c_minus = c_minus_chars[layer]
+        
+        if layer == 0:
+            c_minus_centerline_angle = c_minus['char_angle']
+        
+        x_last, y_last = c_minus['path'][-1]
+        x_centerline = x_last + (y_centerline - y_last) / np.tan(c_minus_centerline_angle)
+        c_minus['path'].append((x_centerline, y_centerline))
+        c_minus['properties'].append(c_minus['properties'][-1].copy())
+        
+        K_minus_at_centerline = c_minus['K_minus']
+        theta_centerline = 0
+        nu_centerline = K_minus_at_centerline - theta_centerline
+        K_plus_reflected = theta_centerline - nu_centerline
+        
+        M_centerline = inverse_PM(abs(nu_centerline), gamma) if abs(nu_centerline) > 0 else 1.0
+        mu_centerline = mach_angle(M_centerline) if M_centerline > 1 else np.pi/2
+        c_plus_angle = theta_centerline + mu_centerline
+        
+        c_plus_path = [(x_centerline, y_centerline)]
+        c_plus_properties = [{
+            'M': M_centerline,
+            'p_p0': 1 / ((1 + (gamma-1)/2 * M_centerline**2)**(gamma/(gamma-1))),
+            'T_T0': 1 / (1 + (gamma-1)/2 * M_centerline**2),
+            'theta': theta_centerline,
+            'nu': nu_centerline,
+            'K_plus': K_plus_reflected
+        }]
+        
+        c_plus_K_plus = K_plus_reflected
+        c_plus_theta = theta_centerline
+        
+        for j in range(layer + 1, len(c_minus_chars)):
+            c_minus_next = c_minus_chars[j]
+            
+            x_c_plus, y_c_plus = c_plus_path[-1]
+            x_c_minus, y_c_minus = c_minus_next['path'][-1]
+            
+            tan_plus = np.tan(c_plus_angle)
+            tan_minus = np.tan(c_minus_next['char_angle'])
+            
+            x_int = (y_c_minus - y_c_plus + tan_plus*x_c_plus - tan_minus*x_c_minus) / (tan_plus - tan_minus)
+            y_int = y_c_plus + tan_plus * (x_int - x_c_plus)
+            
+            c_plus_path.append((x_int, y_int))
+            c_minus_next['path'].append((x_int, y_int))
+            
+            K_minus_int = c_minus_next['K_minus']
+            theta_int = (c_plus_K_plus + K_minus_int) / 2
+            nu_int = (K_minus_int - c_plus_K_plus) / 2
+            
+            M_int = inverse_PM(abs(nu_int), gamma) if abs(nu_int) > 0 else 1.0
+            mu_int = mach_angle(M_int) if M_int > 1 else np.pi/2
+            
+            intersection_props = {
+                'M': M_int,
+                'p_p0': 1 / ((1 + (gamma-1)/2 * M_int**2)**(gamma/(gamma-1))),
+                'T_T0': 1 / (1 + (gamma-1)/2 * M_int**2),
+                'theta': theta_int,
+                'nu': nu_int,
+                'K_plus': theta_int - nu_int,
+                'K_minus': K_minus_int
+            }
+            
+            c_plus_properties.append(intersection_props.copy())
+            c_minus_next['properties'].append(intersection_props.copy())
+            
+            c_plus_angle = theta_int + mu_int
+            c_minus_next['char_angle'] = theta_int - mu_int
+            c_plus_theta = theta_int
+            c_plus_K_plus = theta_int - nu_int
+            
+            if j == layer + 1:
+                c_minus_centerline_angle = c_minus_next['char_angle']
+        
+        # Store characteristic (wall point will be determined by h6s)
+        x_last, y_last = c_plus_path[-1]
+        c_plus_chars.append({
+            'path': c_plus_path,
+            'properties': c_plus_properties
+        })
+    
+    # Create uniform x-spacing
+    x_uniform = np.linspace(0, max([p[0] for char in c_plus_chars for p in char['path']]), len(h6s))
+    wall_y_interp = h6s
+    
+    # Initialize lists
+    M_mass_avg = []
+    p_mass_avg = []
+    T_mass_avg = []
+    
+    # Loop through each x-location
+    for idx, x_sample in enumerate(x_uniform):
+        y_wall_at_x = wall_y_interp[idx]
+        intersections = []
+        
+        # Check for any C+ characteristic intersections
+        for layer, c_plus in enumerate(c_plus_chars):
+            path = c_plus['path']
+            properties = c_plus['properties']
+            
+            for i in range(len(path) - 1):
+                x1, y1 = path[i]
+                x2, y2 = path[i+1]
+                
+                if min(x1, x2) <= x_sample <= max(x1, x2):
+                    if abs(x2 - x1) > 1e-9:
+                        t = (x_sample - x1) / (x2 - x1)
+                        y_at_x = y1 + t * (y2 - y1)
+                    else:
+                        y_at_x = y1
+                    
+                    props = properties[i]
+                    rho_rho0 = (1 + (gamma-1)/2 * props['M']**2)**(-1/(gamma-1))
+                    u_a0 = props['M'] * np.sqrt(props['T_T0'])
+                    rho_u = rho_rho0 * u_a0
+                    
+                    intersections.append({
+                        'y': y_at_x,
+                        'M': props['M'],
+                        'p_p0': props['p_p0'],
+                        'T_T0': props['T_T0'],
+                        'rho_u': rho_u
+                    })
+                    break
+        
+        # Check for any C- characteristic intersections
+        for layer, c_minus in enumerate(c_minus_chars):
+            path = c_minus['path']
+            properties = c_minus['properties']
+            
+            for i in range(len(path) - 1):
+                x1, y1 = path[i]
+                x2, y2 = path[i+1]
+                
+                if min(x1, x2) <= x_sample <= max(x1, x2):
+                    if abs(x2 - x1) > 1e-9:
+                        t = (x_sample - x1) / (x2 - x1)
+                        y_at_x = y1 + t * (y2 - y1)
+                    else:
+                        y_at_x = y1
+                    
+                    props = properties[i]
+                    rho_rho0 = (1 + (gamma-1)/2 * props['M']**2)**(-1/(gamma-1))
+                    u_a0 = props['M'] * np.sqrt(props['T_T0'])
+                    rho_u = rho_rho0 * u_a0
+                    
+                    intersections.append({
+                        'y': y_at_x,
+                        'M': props['M'],
+                        'p_p0': props['p_p0'],
+                        'T_T0': props['T_T0'],
+                        'rho_u': rho_u
+                    })
+                    break
+        
+        if len(intersections) == 0:
+            M_mass_avg.append(M_throat)
+            p_mass_avg.append(P0 / ((1 + (gamma-1)/2 * M_throat**2)**(gamma/(gamma-1))))
+            T_mass_avg.append(T0 / (1 + (gamma-1)/2 * M_throat**2))
+            continue
+        
+        intersections.sort(key=lambda p: p['y'])
+        
+        M_mass_sum = 0
+        p_mass_sum = 0
+        T_mass_sum = 0
+        rho_u_sum = 0
+        y_prev = 0
+        
+        for i, intersection in enumerate(intersections):
+            y_curr = intersection['y']
+            dy = y_curr - y_prev
+            
+            if i == 0:
+                M_val = intersection['M']
+                p_val = intersection['p_p0']
+                T_val = intersection['T_T0']
+                rho_u_val = intersection['rho_u']
+            else:
+                M_val = (intersections[i-1]['M'] + intersection['M']) / 2
+                p_val = (intersections[i-1]['p_p0'] + intersection['p_p0']) / 2
+                T_val = (intersections[i-1]['T_T0'] + intersection['T_T0']) / 2
+                rho_u_val = (intersections[i-1]['rho_u'] + intersection['rho_u']) / 2
+            
+            M_mass_sum += M_val * rho_u_val * dy
+            p_mass_sum += p_val * rho_u_val * dy
+            T_mass_sum += T_val * rho_u_val * dy
+            rho_u_sum += rho_u_val * dy
+            y_prev = y_curr
+        
+        y_last_intersection = intersections[-1]['y']
+        if y_last_intersection < y_wall_at_x:
+            dy = y_wall_at_x - y_last_intersection
+            M_val = intersections[-1]['M']
+            p_val = intersections[-1]['p_p0']
+            T_val = intersections[-1]['T_T0']
+            rho_u_val = intersections[-1]['rho_u']
+            
+            M_mass_sum += M_val * rho_u_val * dy
+            p_mass_sum += p_val * rho_u_val * dy
+            T_mass_sum += T_val * rho_u_val * dy
+            rho_u_sum += rho_u_val * dy
+        
+        M_mass_avg.append(M_mass_sum / rho_u_sum)
+        p_mass_avg.append(P0 * (p_mass_sum / rho_u_sum))
+        T_mass_avg.append(T0 * (T_mass_sum / rho_u_sum))
 
-    # Mach at each point
-    Ms = []
-    for i, ar in enumerate(A_ratio):
-        if i == 0:
-            M = M5  # Throat
-        else:
-            M = bisection_method(area_mach_function, ar, 1e-9, 1.001, 10.0)
-        Ms.append(M)
-
-    Ms = np.array(Ms)
-
-    # Pressure and temperature ratios
-    p_p0 = 1 / ((1 + (gamma-1)/2 * Ms**2)**(gamma/(gamma-1)))
-    T_T0 = 1 / (1 + (gamma-1)/2 * Ms**2)
-    Ps = p_p0 * P0
-    Ts = T_T0 * T0
+    Ms = np.array(M_mass_avg)
+    Ps = np.array(p_mass_avg)
+    Ts = np.array(T_mass_avg)
 
     return Ps, Ts, Ms
 
