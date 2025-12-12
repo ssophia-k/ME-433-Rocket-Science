@@ -12,11 +12,10 @@ from inlet import inlet as Inlet
 def circle_top(xs, x_c, y_c, r):
     return y_c+np.sqrt(r**2-(x_c-xs)**2)
 
-def plot_top(ax, inlet, x_offset, y_offset, x_end):
+def plot_top(inlet, x_offset, y_offset, x_end):
     """
     plots top surface
     Parameters
-    ax : matplotlip axis to plot on
     inlet : inlet object
     x_offset : x offset
     y_offset: y offset
@@ -74,8 +73,8 @@ def plot_top(ax, inlet, x_offset, y_offset, x_end):
     xs_bottom = [i[0] for i in inner_coords]
     ys_bottom = [i[1] for i in inner_coords]
     
-    ax.plot(xs_top, ys_top)
-    ax.plot(xs_bottom, ys_bottom)
+    # ax.plot(xs_top, ys_top)
+    # ax.plot(xs_bottom, ys_bottom)
     
     return inner_coords, outer_coords, top_profile_back_thickness
     
