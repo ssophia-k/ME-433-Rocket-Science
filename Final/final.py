@@ -86,6 +86,8 @@ for M_atm in M_atms:
     a_outlet = get_speed_of_sound(T6)
     momentum_flux_outlet = rho_outlet*(a_outlet*M6)**2*A6s[-1]
     
+    # TODO: add bottom face here
+    
     thrust = momentum_flux_outlet + pressure_force_outlet - momentum_flux_inlet - pressure_force_inlet
     print(f"Actual thrust: {thrust} N")
 
