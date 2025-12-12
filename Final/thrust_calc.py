@@ -29,6 +29,7 @@ def calculate_thrust(inlet, P_in, M_in, T_in, P_out, M_out, T_out, A_out, front_
     Returns
     thrust : thrust, Ns
     """
+    front_angle = abs(front_angle)
     # thrust_estimate = (P6*A6s[-1] + m_dot*get_speed_of_sound(T6)*M6) - (P_atm*(inlet.y_lip-0)*width+m_dot*get_speed_of_sound(T_atm)*M_atm)
     # print(f"Thrust estimate: {thrust_estimate} N")
     pressure_force_inlet = inlet.get_pressure_drag(P_in, T_in, M_in)
