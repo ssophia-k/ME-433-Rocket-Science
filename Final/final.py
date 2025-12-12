@@ -1,5 +1,3 @@
-
-
 import numpy as np
 
 from matplotlib import pyplot as plt
@@ -17,6 +15,8 @@ from combuster import solve_combustor_length
 from converging_section import converging_section
 from nozzle import nozzle
 
+from plot_top import plot_top
+
 # Atmosphere:
 P_atm = 9112.32  # Pa
 T_atm = 216.65  # K
@@ -24,12 +24,12 @@ M_atms = np.linspace(2.75, 3.25)
 M_atms = [3.25]
 
 # Basic properties:
-m_dot = 1  # kg/s
+m_dot = 10  # kg/s
 width = 1  # m
 
 # Inlet:
 M_max = M_atms[-1]
-turn_angles = [5, 5, 5]  # turn angles of inlet, degrees
+turn_angles = [10, 10, 10]  # turn angles of inlet, degrees
 inlet = Inlet(P_atm, T_atm, M_max, m_dot, turn_angles, width=width)
 
 # Diffuser:
@@ -44,7 +44,7 @@ m_dot_fuel = 0.1  # kg/s
 converging_length = 0.1  # m
 
 # Nozzle:
-M_exit_nozz = 4
+P_exit_nozz = P_atm
 
 for M_atm in M_atms:
     M1, P1, T1, _, _, _ = inlet.output_properties(P_atm, T_atm, M_atm)
@@ -69,13 +69,14 @@ for M_atm in M_atms:
     T5 = T5s[-1]
     M5 = M5s[-1]
     
-    P6s, T6s, M6s, _, A6s, h6s, x6s = nozzle(P5, T5, M5, m_dot, M_exit_nozz, width)
+    P6s, T6s, M6s, _, A6s, h6s, x6s = nozzle(P5, T5, M5, m_dot, P_exit_nozz, width)
     P6 = P6s[-1]
     T6 = T6s[-1]
     M6 = M6s[-1]
 
 thrust_estimate = (P6*A6s[-1] + m_dot*get_speed_of_sound(T6)*M6) - (P_atm*(inlet.y_lip-0)*width+m_dot*get_speed_of_sound(T_atm)*M_atm)
 print(f"{thrust_estimate=} N")
+
 
 print(f"{M1=}")
 print(f"{T1=}")
@@ -95,3 +96,13 @@ print(f"{P5=}")
 print(f"{M6=}")
 print(f"{T6=}")
 print(f"{P6=}")
+
+print(f"Inlet height: {(inlet.y_lip-0)}")
+print(f"Outlet height: {h6s[-1]}")
+
+inlet_length = inlet.xs[-1]
+combustor_length = combustor_dict["length_m"]
+nozzle_length = x6s[-1]-x6s[0]
+
+total_length = inlet_length+diffuser_length+combustor_length+converging_length+nozzle_length
+print(f"Total length: {total_length} m")
