@@ -20,7 +20,7 @@ def plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s):
         point[1] = -point[1] + (prev_y + diffuser_df['y'].iloc[0])
     top_face.extend(diffuser_points)
 
-    print(f"x-diff: {top_face[-1]-prev_x}")
+    print(f"x-diff: {top_face[-1][0]-prev_x}")
 
     prev_point = top_face[-1]
     prev_x = prev_point[0]
