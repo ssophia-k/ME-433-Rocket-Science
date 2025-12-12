@@ -276,7 +276,7 @@ class inlet:
         return P_grid, T_grid, rho_grid, M_grid
             
 
-    def get_2d_profiles(self, xs, P_in, T_in, M_in):
+    def get_1d_profiles(self, xs, P_in, T_in, M_in):
         """
         Compute mass-flux-averaged profiles P(x), T(x), rho(x), M(x)
         for given x locations.
@@ -330,7 +330,7 @@ class inlet:
         
             
 if __name__ == "__main__":
-    i = inlet(9112.32, 216.65, 3.25, 1, [10, 10, 10])
+    i = inlet(9112.32, 216.65, 3.25, 1, [10, 10, 10, 10])
     ax = plt.subplot()
     i.plot(ax)
     ax.set_aspect('equal')
@@ -360,7 +360,7 @@ if __name__ == "__main__":
     plot_field(X, Y, rho_grid, "Density Field",        "rho")
     plot_field(X, Y, M_grid,   "Mach Number Field",    "M")
 
-    P_profile, T_profile, rho_profile, M_profile = i.get_2d_profiles(xs, 9112.32, 216.65, 3.25)
+    P_profile, T_profile, rho_profile, M_profile = i.get_1d_profiles(xs, 9112.32, 216.65, 3.25)
     
     plt.plot(xs, M_profile)
     plt.show()
