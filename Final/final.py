@@ -11,7 +11,7 @@ from Tools.misc_functions import get_speed_of_sound
 from inlet import inlet as Inlet
 from diffuser import find_diffuser
 from flameholder import flameholder
-from combuster import solve_combustor_length
+from combustor import solve_combustor_length
 from converging_section import converging_section
 from nozzle import nozzle
 
@@ -37,7 +37,7 @@ M_exit_diffuser = 0.1  #
 diffuser_length = 0.05  # length of diffuser, m
 Resolution = 100
 
-# Combustor:
+# combustor:
 m_dot_fuel = 0.1  # kg/s
 
 # Converging section:
