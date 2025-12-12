@@ -5,12 +5,12 @@ import numpy as np
 import os, sys
 from pathlib import Path
 sys.path.insert(0,os.fspath(Path(__file__).parents[1]))
-from converging_section import converging_section
+from converging_section import design_converging_section
 
 gamma = 1.4
 R = 287
 
-def nozzle(P5, T5, M5, m_dot, P_exit, depth, n_characteristics=300):
+def design_nozzle(P5, T5, M5, m_dot, P_exit, depth, n_characteristics=300):
     """
     Design supersonic nozzle using Method of Characteristics
     
@@ -420,7 +420,7 @@ def nozzle(P5, T5, M5, m_dot, P_exit, depth, n_characteristics=300):
 
     return P, T, M, m_dot, A, h, x
 
-def nozzle_q1d_analysis(h6s, P5, T5, M5, depth):
+def analyze_nozzle(h6s, P5, T5, M5, depth):
     """
     Analyze nozzle with quasi-1D isentropic flow
     
@@ -508,7 +508,7 @@ if __name__ == "__main__":
     depth = 1.0
 
     # Converging section (4 -> 5)
-    P_conv, T_conv, M_conv, m_dot, A_conv, h_conv, x_conv = converging_section(P4, T4, M4, m_dot, length, depth)
+    P_conv, T_conv, M_conv, m_dot, A_conv, h_conv, x_conv = design_converging_section(P4, T4, M4, m_dot, length, depth)
 
     P5 = P_conv[-1]
     T5 = T_conv[-1]
@@ -527,7 +527,7 @@ if __name__ == "__main__":
     # Nozzle section (5 -> 6)
     P_exit = 9112.32
 
-    P_nozzle, T_nozzle, M_nozzle, m_dot, A_nozzle, h_nozzle, x_nozzle = nozzle(P5, T5, M5, m_dot, P_exit, depth)
+    P_nozzle, T_nozzle, M_nozzle, m_dot, A_nozzle, h_nozzle, x_nozzle = design_nozzle(P5, T5, M5, m_dot, P_exit, depth)
 
     P6 = P_nozzle[-1]
     T6 = T_nozzle[-1]
@@ -611,7 +611,7 @@ if __name__ == "__main__":
     T5 = 1300
     M5 = 1
 
-    Ps, Ts, Ms = nozzle_q1d_analysis(h_nozzle, P5, T5, M5, depth)
+    Ps, Ts, Ms = analyze_nozzle(h_nozzle, P5, T5, M5, depth)
 
     print("Off-Design Quasi 1-D Analysis")
     print(f"P6 = {Ps[-1]} Pa")

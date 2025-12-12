@@ -12,7 +12,7 @@ R = 287
 gamma = 1.4
 
 # Converging Section
-def converging_section(P4, T4, M4, m_dot, length, depth, n_points=100):
+def design_converging_section(P4, T4, M4, m_dot, length, depth, n_points=100):
     """
     Analyze converging section (Section 4 -> 5) with quasi-1D isentropic flow
     
@@ -102,6 +102,56 @@ def converging_section(P4, T4, M4, m_dot, length, depth, n_points=100):
 
     return P, T, M, m_dot, A, h, x
 
+def analyze_converging_section(hs, P4, T4, M4, depth):
+    """
+    Analyze converging section (Section 4 -> 5) with quasi-1D isentropic flow
+    
+    Inputs:
+        hs: Height of converging section (m)
+        P4: Static pressure at section 4 (Pa)
+        T4: Static temperature at section 4 (K)
+        M4: Mach number at section 4 (dimensionless)
+        depth: Physical depth of converging section (m)
+
+    Outputs:
+        Ps, Ts, Ms: Arrays with axial distributions
+    """
+
+    # Stagnation P and T from static
+    P04 = P4 * (1 + (gamma-1)/2 * M4**2)**(gamma/(gamma-1))
+    T04 = T4 * (1 + (gamma-1)/2 * M4**2)
+    
+    # Calculate areas
+    As = hs * depth
+
+    # Calculate throat area (A*)
+    A_ratio_sq_4 = area_mach_relation(M4, gamma)
+    A4 = As[0]
+    A_star = A4 / np.sqrt(A_ratio_sq_4)
+
+    # Calculate flow properties at each axial section
+    A_over_Astar = As / A_star
+
+    # Find Mach number at each location
+    M_values = []
+    for area_ratio in A_over_Astar:
+        A_ratio_sq = area_ratio**2
+        M_solutions = inverse_area_mach_relation(A_ratio_sq, gamma)
+        M_subsonic = M_solutions[0]  # Take subsonic solution
+        M_values.append(M_subsonic)
+
+    Ms = np.array(M_values)
+
+    # Calculate pressure and temperature ratios
+    p_over_p0 = 1/((1 + (gamma-1)/2 * M**2)**(gamma/(gamma-1)))
+    T_over_T0 = 1/(1 + (gamma-1)/2 * M**2)
+
+    # Calculate static properties
+    Ps = p_over_p0 * P04
+    Ts = T_over_T0 * T04
+
+    return Ps, Ts, Ms
+
 # Run
 if __name__ == "__main__":
     P4 = 200000  # Pa
@@ -111,7 +161,7 @@ if __name__ == "__main__":
     length = 1.0  # m
     depth = 1.0  # m
 
-    P, T, M, m_dot, A, h, x = converging_section(P4, T4, M4, m_dot, length, depth, n_points=100)
+    P, T, M, m_dot, A, h, x = design_converging_section(P4, T4, M4, m_dot, length, depth, n_points=100)
 
     # Section 5 properties
     print(f"P5 = {P[-1]} Pa")
@@ -168,3 +218,14 @@ if __name__ == "__main__":
     plt.title('Mach Number Distribution')
     plt.grid(True)
     plt.show()
+
+    # Off-Design Quasi 1-D Analysis
+    P4 = 100000  # Pa
+    T4 = 1000    # K
+    M4 = 0.3      # dimensionless
+
+    P5, T5, M5 = analyze_converging_section(h, P4, T4, M4, depth)
+    
+    print(f"P5 = {P5[-1]} Pa")
+    print(f"T5 = {T5[-1]} K")
+    print(f"M5 = {M5[-1]}")

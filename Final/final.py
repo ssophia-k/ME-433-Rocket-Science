@@ -12,10 +12,11 @@ from inlet import inlet as Inlet
 from diffuser import find_diffuser
 from flameholder import flameholder
 from combuster import solve_combustor_length
-from converging_section import converging_section
-from nozzle import nozzle
+from converging_section import design_converging_section
+from nozzle import design_nozzle
 
 from plot_top import plot_top
+from plot_bottom import plot_bottom
 
 # Atmosphere:
 P_atm = 9112.32  # Pa
@@ -64,19 +65,18 @@ for M_atm in M_atms:
     T4 = combustor_dict["T_out"]
     M4 = combustor_dict["M_out"]
     
-    P5s, T5s, M5s, _, A5s, h5s, x5s = converging_section(P4, T4, M4, m_dot, converging_length, width)
+    P5s, T5s, M5s, _, A5s, h5s, x5s = design_converging_section(P4, T4, M4, m_dot, converging_length, width)
     P5 = P5s[-1]
     T5 = T5s[-1]
     M5 = M5s[-1]
     
-    P6s, T6s, M6s, _, A6s, h6s, x6s = nozzle(P5, T5, M5, m_dot, P_exit_nozz, width)
+    P6s, T6s, M6s, _, A6s, h6s, x6s = design_nozzle(P5, T5, M5, m_dot, P_exit_nozz, width)
     P6 = P6s[-1]
     T6 = T6s[-1]
     M6 = M6s[-1]
 
 thrust_estimate = (P6*A6s[-1] + m_dot*get_speed_of_sound(T6)*M6) - (P_atm*(inlet.y_lip-0)*width+m_dot*get_speed_of_sound(T_atm)*M_atm)
 print(f"{thrust_estimate=} N")
-
 
 print(f"{M1=}")
 print(f"{T1=}")
@@ -106,3 +106,5 @@ nozzle_length = x6s[-1]-x6s[0]
 
 total_length = inlet_length+diffuser_length+combustor_length+converging_length+nozzle_length
 print(f"Total length: {total_length} m")
+
+top_face, bottom_face = plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s)

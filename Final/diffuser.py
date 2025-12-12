@@ -74,10 +74,10 @@ if __name__ == "__main__":
     # --- Design Inputs ---
     
     # INLET CONDITIONS (From the inlet portion)
-    M_in = 0.7      # Entering Mach (Must be < 1)
-    P_in = 2000000     # Inlet Static Pressure (Pa)
-    T_in = 716       # Inlet Static Temp (K)
-    m_dot = 1.0       # Mass flow (kg/s)
+    M_in = 0.6      # Entering Mach (Must be < 1)
+    P_in = 268732     # Inlet Static Pressure (Pa)
+    T_in = 629       # Inlet Static Temp (K)
+    m_dot = 10.0       # Mass flow (kg/s)
     width = 1 # width into the page (m)
     
     # DESIGN GOALS
