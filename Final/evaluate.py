@@ -18,14 +18,15 @@ from combustor import evaluate_combustor
 from converging_section import analyze_converging_section
 from nozzle import analyze_nozzle
 
+from plot_top import plot_top
+from plot_bottom import plot_bottom
+from thrust_calc import calculate_thrust
+
 # Atmosphere:
 P_atm = 9112.32  # Pa
 T_atm = 216.65  # K
-M_atms = np.linspace(2.75, 3.25, 3)
+M_atms = np.linspace(2.75, 3.25, 50)
 gamma = gamma_air
-
-# Basic properties:
-width = 1  # m
 
 with open("Final/profiles/inlet_design_params_dict.pkl", "rb") as f:
     inlet_design_params_dict = pickle.load(f)
@@ -35,6 +36,8 @@ with open("Final/profiles/combustor_dict.pkl", "rb") as f:
 converge_df = pd.read_pickle("Final/profiles/converge_df.pkl")
 nozzle_df = pd.read_pickle("Final/profiles/nozzle_df.pkl")
 
+# Inlet Parameters
+width = inlet_design_params_dict["width"] # m
 inlet = Inlet(**inlet_design_params_dict)
 inlet_xs = inlet.xs
 inlet_ys = inlet.ys
@@ -49,6 +52,8 @@ for M_in in M_atms:
         "Ts": [],
         "P0s": [],
         "T0s": [],
+        "Ss": [],
+        "Thrust": None,
         "fuel_info": {}
     })
 
@@ -96,7 +101,7 @@ for r in results:
     rho_in = r["Ps"][-1] / (R_air * r["Ts"][-1])
     area_in = diffuser_df['y'].iloc[-1] * width
     m_dot_air = area_in * rho_in * u_in
-    combustor_results = evaluate_combustor(combustor_dict["length_m"], r["Ms"][-1], r["Ps"][-1], r["Ts"][-1], m_dot_air, width, combustor_dict["m_dot_fuel"])
+    combustor_results = evaluate_combustor(combustor_dict["length_m"], r["Ms"][-1], r["Ps"][-1], r["Ts"][-1], m_dot_air, width, combustor_dict["M_out"])
     r["xs"].append(combustor_results["length_m"] + r["xs"][-1])
     r["Ms"].append(combustor_results["M_out"])
     r["Ps"].append(combustor_results["P_out"])
@@ -104,8 +109,8 @@ for r in results:
     r["P0s"].append(r["Ps"][-1] * P0_P(r["Ms"][-1], gamma))
     r["T0s"].append(r["Ts"][-1] * T0_T(r["Ms"][-1], gamma))
     r["fuel_info"] = {"m_dot_fuel_cmd_kg_s": combustor_results["m_dot_fuel_cmd_kg_s"],
-                        "m_dot_fuel_max_kg_s": combustor_results["m_dot_fuel_max_kg_s"],
-                        "fuel_limited_by_choke": combustor_results["fuel_limited_by_choke"],
+                        "burn_time_s": combustor_results["burn_time_s"],
+                        "flow_time_s": combustor_results["flow_time_s"]
                     }
     
     # Converging section
@@ -126,55 +131,97 @@ for r in results:
     r["P0s"].extend(noz_Ps * P0_P(noz_Ms, gamma))
     r["T0s"].extend(noz_Ts * T0_T(noz_Ms, gamma))
 
+# -------------------------------------------------------------
+# THRUST
+# -------------------------------------------------------------
+# Get thrust input parameters
+_, _, top_profile_back_thickness = plot_top (inlet, 0, 0, results[0]["xs"][-1]- results[0]["xs"][0])
+_, _, length_of_front, angle_of_front = plot_bottom(inlet, diffuser_df, combustor_dict, converge_df["x_vals"], converge_df["height"], nozzle_df["x_vals"], nozzle_df["height"])
 
-#print(results)
+for r in results:
+    thrust = calculate_thrust(inlet, P_atm, M_in, T_atm, r["Ps"][-1], r["Ms"][-1], r["Ts"][-1], nozzle_df["height"].iloc[-1]* width, length_of_front, angle_of_front, top_profile_back_thickness, width)
+    r["Thrust"] = thrust
+
+# -------------------------------------------------------------
+# PLOT ALL OUR RESULTS
+# -------------------------------------------------------------
+
+stride = 10
 
 plt.figure()
-for r in results:
+for r in results[::stride]:
     plt.plot(r["xs"], r["Ms"], label=f"M_in = {r['M_in']:.2f}")
-plt.xlabel("x")
+plt.xlabel("x [m]")
 plt.ylabel("Mach number")
 plt.legend()
 plt.grid(True)
-plt.show()
 plt.savefig('Final/results/mach_profiles.png')
 
 plt.figure()
-for r in results:
+for r in results[::stride]:
     plt.plot(r["xs"], r["Ps"], label=f"M_in = {r['M_in']:.2f}")
-plt.xlabel("x")
-plt.ylabel("Static Pressure")
+plt.xlabel("x [m]")
+plt.ylabel("Static Pressure [Pa]")
 plt.legend()
 plt.grid(True)
 plt.savefig('Final/results/p_profiles.png')
 
 plt.figure()
-for r in results:
+for r in results[::stride]:
     plt.plot(r["xs"], r["Ts"], label=f"M_in = {r['M_in']:.2f}")
-plt.xlabel("x")
-plt.ylabel("Static Temperature")
+plt.xlabel("x [m]")
+plt.ylabel("Static Temperature [K]")
 plt.legend()
 plt.grid(True)
 plt.savefig('Final/results/t_profiles.png')
 
 plt.figure()
-for r in results:
+for r in results[::stride]:
     plt.plot(r["xs"], r["P0s"], label=f"M_in = {r['M_in']:.2f}")
-plt.xlabel("x")
-plt.ylabel("Stagnation Pressure")
+plt.xlabel("x [m]")
+plt.ylabel("Stagnation Pressure [Pa]")
 plt.legend()
 plt.grid(True)
 plt.savefig('Final/results/p0_profiles.png')
 
 plt.figure()
-for r in results:
+for r in results[::stride]:
     plt.plot(r["xs"], r["T0s"], label=f"M_in = {r['M_in']:.2f}")
-plt.xlabel("x")
-plt.ylabel("Stagnation Temperature")
+plt.xlabel("x [m]")
+plt.ylabel("Stagnation Temperature [K]")
 plt.legend()
 plt.grid(True)
 plt.savefig('Final/results/t0_profiles.png')
 
+plt.figure()
+M_in_vals = [r["M_in"] for r in results]
+m_dot_fuel_vals = [r["fuel_info"]["m_dot_fuel_cmd_kg_s"] for r in results]
+plt.plot(M_in_vals, m_dot_fuel_vals)
+plt.xlabel("Mach number")
+plt.ylabel("Necessary fuel mass flow [kg/s]")
+plt.grid(True)
+plt.savefig('Final/results/fuel_flow_vs_mach.png')
+
+plt.figure()
+M_in_vals = [r["M_in"] for r in results]
+thrust_vals = [r["Thrust"] for r in results]
+plt.plot(M_in_vals, thrust_vals)
+plt.xlabel("Mach number")
+plt.ylabel("Thrust [N]")
+plt.grid(True)
+plt.savefig('Final/results/thrust_vs_mach.png')
+
+plt.figure()
+for r in results[::stride]:
+    T_vals = np.array(r["Ts"])
+    P_vals = np.array(r["Ps"])
+    v_vals = R_air * T_vals / P_vals
+    plt.plot(v_vals, P_vals, label=f"M_in = {r['M_in']:.2f}")
+plt.xlabel("v [kg/m^3]")
+plt.ylabel("P [Pa]")
+plt.legend()
+plt.grid(True)
+plt.savefig('Final/results/P-v.png')
 
 
 
