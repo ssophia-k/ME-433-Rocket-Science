@@ -141,8 +141,12 @@ _, _, top_profile_back_thickness = plot_top (inlet, 0, 0, results[0]["xs"][-1]- 
 _, _, length_of_front, angle_of_front = plot_bottom(inlet, diffuser_df, combustor_dict, converge_df["x_vals"], converge_df["height"], nozzle_df["x_vals"], nozzle_df["height"])
 
 for r in results:
-    thrust = calculate_thrust(inlet, P_atm, M_in, T_atm, r["Ps"][-1], r["Ms"][-1], r["Ts"][-1], nozzle_df["height"].iloc[-1]* width, length_of_front, angle_of_front, top_profile_back_thickness, width)
+    thrust = calculate_thrust(inlet, P_atm, r["M_in"], T_atm, r["Ps"][-1], r["Ms"][-1], r["Ts"][-1], nozzle_df["height"].iloc[-1]* width, length_of_front, angle_of_front, top_profile_back_thickness, width)
     r["Thrust"] = thrust
+
+# Average thrust
+avg_thrust = sum(r["Thrust"] for r in results) / len(results)
+print(f"Average Thrust: {avg_thrust} N")
 
 # -------------------------------------------------------------
 # PLOT ALL OUR RESULTS
