@@ -120,11 +120,9 @@ combustor_length = combustor_dict["length_m"]
 nozzle_length = x6s[-1]-x6s[0]
 total_length = inlet_length+diffuser_length+combustor_length+converging_length+nozzle_length
 
-fig, ax = plt.subplots(figsize=(12, 6))
 
 # Plot the top surface
 inner_coords, outer_coords, top_profile_back_thickness = plot_top(
-    ax, 
     inlet, 
     x_offset=0,
     y_offset=0,
@@ -133,7 +131,6 @@ inner_coords, outer_coords, top_profile_back_thickness = plot_top(
 
 # Plot the bottom surface
 top_face, bottom_face, length_of_front, angle_of_front = plot_bottom(
-    ax,
     inlet,
     diffuser_df,
     combustor_dict,
@@ -143,13 +140,22 @@ top_face, bottom_face, length_of_front, angle_of_front = plot_bottom(
     h6s
 )
 
-ax.set_xlabel('x (m)')
-ax.set_ylabel('y (m)')
-ax.set_title('Complete Ramjet Geometry')
-ax.legend()
-ax.grid(True, alpha=0.3)
-ax.axis('equal')
+inner_x, inner_y = zip(*inner_coords)
+outer_x, outer_y = zip(*outer_coords)
+top_x,   top_y   = zip(*top_face)
+bot_x,   bot_y   = zip(*bottom_face)
 
+plt.figure(figsize=(12, 4))
+plt.plot(outer_x, outer_y, label="Outer Surface (Top)", linewidth=1)
+plt.plot(inner_x, inner_y, label="Inner Surface (Top)", linewidth=1)
+plt.plot(top_x, top_y, label="Outer Surface (Bottom)", linewidth=1)
+plt.plot(bot_x, bot_y, label="Inner Surface (Bottom)", linewidth=1)
+plt.axis("equal")
+plt.xlabel("x-position [m]")
+plt.ylabel("height [m]")
+plt.title("Ramjet Profile")
+plt.legend()
+plt.grid(True)
 plt.tight_layout()
 plt.show()
 
