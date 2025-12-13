@@ -420,7 +420,7 @@ def design_nozzle(P5, T5, M5, m_dot, P_exit, depth, n_characteristics=300):
 
     return P, T, M, m_dot, A, h, x, c_plus_chars, c_minus_chars
 
-def analyze_nozzle(x6s, h6s, P5, T5, M5, depth, n_characteristics=300):
+def analyze_nozzle_moc(x6s, h6s, P5, T5, M5, depth, n_characteristics=300):
     """
     Analyze nozzle with quasi-1D isentropic flow
     
@@ -481,8 +481,8 @@ def analyze_nozzle(x6s, h6s, P5, T5, M5, depth, n_characteristics=300):
     T0 = T5 * (1 + (gamma-1)/2 * M5**2)
     
     # Estimate exit Mach from given wall geometry
-    A_throat = h6s[0] * depth
-    A_exit = h6s[-1] * depth
+    A_throat = h6s.iloc[0] * depth
+    A_exit = h6s.iloc[-1] * depth
     area_ratio = A_exit / A_throat
     
     def area_mach_function(M):
@@ -491,9 +491,9 @@ def analyze_nozzle(x6s, h6s, P5, T5, M5, depth, n_characteristics=300):
     M_exit = bisection_method(area_mach_function, area_ratio, 1e-9, 1.001, 10.0)
     
     # MOC setup
-    height_throat = h6s[0]
+    height_throat = h6s.iloc[0]
     M_throat = M5
-    x_corner = x6s[0]
+    x_corner = x6s.iloc[0]
     y_corner = height_throat
     y_centerline = 0.0
     
@@ -621,8 +621,8 @@ def analyze_nozzle(x6s, h6s, P5, T5, M5, depth, n_characteristics=300):
         y_wall_hit = None
         
         for i in range(len(x6s) - 1):
-            x1, x2 = x6s[i], x6s[i+1]
-            y1, y2 = h6s[i], h6s[i+1]
+            x1, x2 = x6s.iloc[i], x6s.iloc[i+1]
+            y1, y2 = h6s.iloc[i], h6s.iloc[i+1]
             
             if x2 < x_last:
                 continue
@@ -791,6 +791,102 @@ def analyze_nozzle(x6s, h6s, P5, T5, M5, depth, n_characteristics=300):
     Ts = np.array(T_mass_avg)
 
     return Ps, Ts, Ms, c_plus_chars, c_minus_chars
+
+def analyze_nozzle_1d(h6s, P5, T5, M5, depth):
+    """
+    Analyze nozzle with quasi-1D isentropic flow
+    
+    Inputs:
+        h6s: List of heights of nozzle design (m)
+        P5: Static pressure at section 5 (Pa)
+        T5: Static temperature at section 5 (K)
+        M5: Mach number at section 5 (dimensionless)
+        depth: Physical depth of nozzle (m)
+    
+    Outputs:
+        P, T, M: Arrays with axial distributions
+    """
+
+    """
+    Analyze nozzle with quasi-1D isentropic flow
+    
+    Inputs:
+        h6s: List of heights of nozzle design (m)
+        P5: Static pressure at section 5 (Pa)
+        T5: Static temperature at section 5 (K)
+        M5: Mach number at section 5 (dimensionless)
+        depth: Physical depth of nozzle (m)
+    
+    Outputs:
+        P, T, M: Arrays with axial distributions
+    """
+
+    # Helper Functions
+    def bisection_method(function, value, tolerance, left_bound=0, right_bound=47000):
+        a = left_bound
+        b = right_bound
+        fa = function(a) - value
+        fb = function(b) - value
+
+        if abs(fa) < 1e-9:
+            return a
+        if abs(fb) < 1e-9:
+            return b
+
+        if fa * fb > 0:
+            raise ValueError("Balloon will never reach equilibrium")
+        while (b - a) > tolerance:
+            c = (a + b) / 2
+            fc = function(c) - value
+            if abs(fc) < 1e-9:
+                return c
+            if fa * fc < 0:
+                b, fb = c, fc
+            else:
+                a, fa = c, fc
+        return (a + b) / 2
+
+    def area_mach_function(M):
+        """
+        Inputs:
+            M: Mach number (dimensionless)
+
+        Outputs:
+            A/A*: Area ratio (dimensionless)
+        """
+        return np.sqrt((1/M**2) * ((2/(gamma+1))*(1 + (gamma-1)/2 * M**2))**((gamma+1)/(gamma-1)))
+    
+    # Stagnation properties from static
+    P0 = P5 * (1 + (gamma-1)/2 * M5**2)**(gamma/(gamma-1))
+    T0 = T5 * (1 + (gamma-1)/2 * M5**2)
+    # Throat Area
+    A_throat = h6s.iloc[0] * depth
+
+    # Area ratio at each wall point
+    A = h6s * depth
+    A_ratio = A / A_throat
+
+    # Mach at each point
+    Ms = []
+    for i, ar in enumerate(A_ratio):
+        if i == 0:
+            M = M5  # Throat
+        else:
+            M = bisection_method(area_mach_function, ar, 1e-9, 1.001, 10.0)
+        Ms.append(M)
+
+    Ms = np.array(Ms)
+
+    # Pressure and temperature ratios
+    p_p0 = 1 / ((1 + (gamma-1)/2 * Ms**2)**(gamma/(gamma-1)))
+    T_T0 = 1 / (1 + (gamma-1)/2 * Ms**2)
+    Ps = p_p0 * P0
+    Ts = T_T0 * T0
+
+    return Ps, Ts, Ms
+
+
+
 
 if __name__ == "__main__":
     P4 = 200000

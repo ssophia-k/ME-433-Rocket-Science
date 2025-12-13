@@ -16,7 +16,7 @@ from diffuser import evaluate_diffuser
 from flameholder import flameholder
 from combustor import evaluate_combustor
 from converging_section import analyze_converging_section
-from nozzle import analyze_nozzle
+from nozzle import analyze_nozzle_moc, analyze_nozzle_1d
 
 from plot_top import plot_top
 from plot_bottom import plot_bottom
@@ -25,7 +25,7 @@ from thrust_calc import calculate_thrust
 # Atmosphere:
 P_atm = 9112.32  # Pa
 T_atm = 216.65  # K
-M_atms = np.linspace(2.75, 3.25, 50)
+M_atms = np.linspace(2.75, 3.25, 51)
 gamma = gamma_air
 
 with open("Final/profiles/inlet_design_params_dict.pkl", "rb") as f:
@@ -59,6 +59,7 @@ for M_in in M_atms:
 
 for r in results:
     M_in = r["M_in"]
+    print(f"Running {M_in}")
 
     # Inlet
     P_inlet, T_inlet, _, M_inlet = inlet.get_1d_profiles(inlet_xs, P_atm, T_atm, M_in)
@@ -123,7 +124,8 @@ for r in results:
     r["T0s"].extend(con_Ts * T0_T(con_Ms, gamma))
 
     # Nozzle
-    noz_Ps, noz_Ts, noz_Ms = analyze_nozzle(nozzle_df["height"], r["Ps"][-1], r["Ts"][-1], r["Ms"][-1], width)
+    noz_Ps, noz_Ts, noz_Ms, _, _ = analyze_nozzle_moc(nozzle_df["x_vals"], nozzle_df["height"], r["Ps"][-1], r["Ts"][-1], r["Ms"][-1], width, n_characteristics=300)
+    #noz_Ps, noz_Ts, noz_Ms = analyze_nozzle_1d(nozzle_df["height"], r["Ps"][-1], r["Ts"][-1], r["Ms"][-1], width)
     r["xs"].extend(nozzle_df["x_vals"] + r["xs"][-1])
     r["Ms"].extend(noz_Ms)
     r["Ps"].extend(noz_Ps)
@@ -155,6 +157,7 @@ plt.xlabel("x [m]")
 plt.ylabel("Mach number")
 plt.legend()
 plt.grid(True)
+plt.tight_layout()
 plt.savefig('Final/results/mach_profiles.png')
 
 plt.figure()
@@ -164,6 +167,7 @@ plt.xlabel("x [m]")
 plt.ylabel("Static Pressure [Pa]")
 plt.legend()
 plt.grid(True)
+plt.tight_layout()
 plt.savefig('Final/results/p_profiles.png')
 
 plt.figure()
@@ -173,6 +177,7 @@ plt.xlabel("x [m]")
 plt.ylabel("Static Temperature [K]")
 plt.legend()
 plt.grid(True)
+plt.tight_layout()
 plt.savefig('Final/results/t_profiles.png')
 
 plt.figure()
@@ -182,6 +187,7 @@ plt.xlabel("x [m]")
 plt.ylabel("Stagnation Pressure [Pa]")
 plt.legend()
 plt.grid(True)
+plt.tight_layout()
 plt.savefig('Final/results/p0_profiles.png')
 
 plt.figure()
@@ -191,6 +197,7 @@ plt.xlabel("x [m]")
 plt.ylabel("Stagnation Temperature [K]")
 plt.legend()
 plt.grid(True)
+plt.tight_layout()
 plt.savefig('Final/results/t0_profiles.png')
 
 plt.figure()
@@ -200,6 +207,7 @@ plt.plot(M_in_vals, m_dot_fuel_vals)
 plt.xlabel("Mach number")
 plt.ylabel("Necessary fuel mass flow [kg/s]")
 plt.grid(True)
+plt.tight_layout()
 plt.savefig('Final/results/fuel_flow_vs_mach.png')
 
 plt.figure()
@@ -209,6 +217,7 @@ plt.plot(M_in_vals, thrust_vals)
 plt.xlabel("Mach number")
 plt.ylabel("Thrust [N]")
 plt.grid(True)
+plt.tight_layout()
 plt.savefig('Final/results/thrust_vs_mach.png')
 
 plt.figure()
@@ -221,6 +230,7 @@ plt.xlabel("v [kg/m^3]")
 plt.ylabel("P [Pa]")
 plt.legend()
 plt.grid(True)
+plt.tight_layout()
 plt.savefig('Final/results/P-v.png')
 
 
