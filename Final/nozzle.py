@@ -743,8 +743,8 @@ def analyze_nozzle_moc(x6s, h6s, P5, T5, M5, depth, n_characteristics=300):
         intersections.sort(key=lambda p: p['y'])
         
         M_mass_sum = 0
-        p_mass_sum = 0
-        T_mass_sum = 0
+        # p_mass_sum = 0
+        # T_mass_sum = 0
         rho_u_sum = 0
         y_prev = 0
         
@@ -754,18 +754,18 @@ def analyze_nozzle_moc(x6s, h6s, P5, T5, M5, depth, n_characteristics=300):
             
             if i == 0:
                 M_val = intersection['M']
-                p_val = intersection['p_p0']
-                T_val = intersection['T_T0']
+                # p_val = intersection['p_p0']
+                # T_val = intersection['T_T0']
                 rho_u_val = intersection['rho_u']
             else:
                 M_val = (intersections[i-1]['M'] + intersection['M']) / 2
-                p_val = (intersections[i-1]['p_p0'] + intersection['p_p0']) / 2
-                T_val = (intersections[i-1]['T_T0'] + intersection['T_T0']) / 2
+                # p_val = (intersections[i-1]['p_p0'] + intersection['p_p0']) / 2
+                # T_val = (intersections[i-1]['T_T0'] + intersection['T_T0']) / 2
                 rho_u_val = (intersections[i-1]['rho_u'] + intersection['rho_u']) / 2
             
             M_mass_sum += M_val * rho_u_val * dy
-            p_mass_sum += p_val * rho_u_val * dy
-            T_mass_sum += T_val * rho_u_val * dy
+            # p_mass_sum += p_val * rho_u_val * dy
+            # T_mass_sum += T_val * rho_u_val * dy
             rho_u_sum += rho_u_val * dy
             y_prev = y_curr
         
@@ -773,18 +773,29 @@ def analyze_nozzle_moc(x6s, h6s, P5, T5, M5, depth, n_characteristics=300):
         if y_last_intersection < y_wall_at_x:
             dy = y_wall_at_x - y_last_intersection
             M_val = intersections[-1]['M']
-            p_val = intersections[-1]['p_p0']
-            T_val = intersections[-1]['T_T0']
+            # p_val = intersections[-1]['p_p0']
+            # T_val = intersections[-1]['T_T0']
             rho_u_val = intersections[-1]['rho_u']
             
             M_mass_sum += M_val * rho_u_val * dy
-            p_mass_sum += p_val * rho_u_val * dy
-            T_mass_sum += T_val * rho_u_val * dy
+            # p_mass_sum += p_val * rho_u_val * dy
+            # T_mass_sum += T_val * rho_u_val * dy
             rho_u_sum += rho_u_val * dy
         
-        M_mass_avg.append(M_mass_sum / rho_u_sum)
-        p_mass_avg.append(P0 * (p_mass_sum / rho_u_sum))
-        T_mass_avg.append(T0 * (T_mass_sum / rho_u_sum))
+        # M_mass_avg.append(M_mass_sum / rho_u_sum)
+        # p_mass_avg.append(P0 * (p_mass_sum / rho_u_sum))
+        # T_mass_avg.append(T0 * (T_mass_sum / rho_u_sum))
+
+        # Averaged Mach number
+        M_avg = M_mass_sum / rho_u_sum
+        
+        # Calculate P and T to be consistent with constant P0, T0
+        P_consistent = P0 / (1 + (gamma-1)/2 * M_avg**2)**(gamma/(gamma-1))
+        T_consistent = T0 / (1 + (gamma-1)/2 * M_avg**2)
+        
+        M_mass_avg.append(M_avg)
+        p_mass_avg.append(P_consistent)
+        T_mass_avg.append(T_consistent)
     
     Ms = np.array(M_mass_avg)
     Ps = np.array(p_mass_avg)
@@ -884,9 +895,6 @@ def analyze_nozzle_1d(h6s, P5, T5, M5, depth):
     Ts = T_T0 * T0
 
     return Ps, Ts, Ms
-
-
-
 
 if __name__ == "__main__":
     P4 = 200000
@@ -1000,7 +1008,7 @@ if __name__ == "__main__":
     T5 = 1300
     M5 = 1
 
-    Ps, Ts, Ms, c_plus_chars, c_minus_chars = analyze_nozzle(x_nozzle, h_nozzle, P5, T5, M5, depth)
+    Ps, Ts, Ms, c_plus_chars, c_minus_chars = analyze_nozzle_moc(x_nozzle, h_nozzle, P5, T5, M5, depth)
 
     print("On-Design MOC Analysis")
     print(f"P6 = {Ps[-1]} Pa")

@@ -124,7 +124,7 @@ for r in results:
     r["T0s"].extend(con_Ts * T0_T(con_Ms, gamma))
 
     # Nozzle
-    noz_Ps, noz_Ts, noz_Ms, _, _ = analyze_nozzle_moc(nozzle_df["x_vals"], nozzle_df["height"], r["Ps"][-1], r["Ts"][-1], r["Ms"][-1], width, n_characteristics=300)
+    noz_Ps, noz_Ts, noz_Ms, _, _ = analyze_nozzle_moc(nozzle_df["x_vals"], nozzle_df["height"], r["Ps"][-1], r["Ts"][-1], r["Ms"][-1], width, n_characteristics=50)
     #noz_Ps, noz_Ts, noz_Ms = analyze_nozzle_1d(nozzle_df["height"], r["Ps"][-1], r["Ts"][-1], r["Ms"][-1], width)
     r["xs"].extend(nozzle_df["x_vals"] + r["xs"][-1])
     r["Ms"].extend(noz_Ms)
