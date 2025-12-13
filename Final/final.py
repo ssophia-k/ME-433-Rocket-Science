@@ -98,7 +98,7 @@ converge_df = pd.DataFrame({
 })
 converge_df.to_pickle('Final/profiles/converge_df.pkl')
 
-P6s, T6s, M6s, _, A6s, h6s, x6s = design_nozzle(P5, T5, M5, m_dot, P_exit_nozz, width)
+P6s, T6s, M6s, _, A6s, h6s, x6s, _, _ = design_nozzle(P5, T5, M5, m_dot, P_exit_nozz, width)
 P6 = P6s[-1]
 T6 = T6s[-1]
 M6 = M6s[-1]

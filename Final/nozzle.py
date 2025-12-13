@@ -418,14 +418,15 @@ def design_nozzle(P5, T5, M5, m_dot, P_exit, depth, n_characteristics=300):
     A = h * depth
     x = x_uniform
 
-    return P, T, M, m_dot, A, h, x
+    return P, T, M, m_dot, A, h, x, c_plus_chars, c_minus_chars
 
-def analyze_nozzle(h6s, P5, T5, M5, depth):
+def analyze_nozzle(x6s, h6s, P5, T5, M5, depth, n_characteristics=300):
     """
     Analyze nozzle with quasi-1D isentropic flow
     
     Inputs:
         h6s: List of heights of nozzle design (m)
+        x6s: List of x-coordinates of nozzle design (m)
         P5: Static pressure at section 5 (Pa)
         T5: Static temperature at section 5 (K)
         M5: Mach number at section 5 (dimensionless)
@@ -478,33 +479,35 @@ def analyze_nozzle(h6s, P5, T5, M5, depth):
     # Stagnation properties from static
     P0 = P5 * (1 + (gamma-1)/2 * M5**2)**(gamma/(gamma-1))
     T0 = T5 * (1 + (gamma-1)/2 * M5**2)
-    # Throat Area
-    A_throat = h6s[0] * depth
-
-    # Generate MOC solution (simplified for given wall)
-    n_characteristics = len(h6s)
-    height_throat = h6s[0]
-    M_throat = M5
-    x_corner = 0.0
-    y_corner = height_throat
-    y_centerline = 0.0
     
-    # Estimate exit Mach from area ratio
+    # Estimate exit Mach from given wall geometry
+    A_throat = h6s[0] * depth
     A_exit = h6s[-1] * depth
     area_ratio = A_exit / A_throat
     
     def area_mach_function(M):
         return np.sqrt((1/M**2) * ((2/(gamma+1))*(1 + (gamma-1)/2 * M**2))**((gamma+1)/(gamma-1)))
     
-    M_exit_estimate = bisection_method(area_mach_function, area_ratio, 1e-9, 1.001, 10.0)
+    M_exit = bisection_method(area_mach_function, area_ratio, 1e-9, 1.001, 10.0)
     
-    nu_exit = prandtl_meyer(M_exit_estimate, gamma)
+    # MOC setup
+    height_throat = h6s[0]
+    M_throat = M5
+    x_corner = x6s[0]
+    y_corner = height_throat
+    y_centerline = 0.0
+    
+    theta_head = 0.0
+    nu_head = 0.0
+    
+    nu_exit = prandtl_meyer(M_exit, gamma)
     theta_max = nu_exit / 2
+    theta_tail = theta_max
     
-    # Generate C- characteristics
+    # Generate C- Characteristics
     c_minus_chars = []
     for i in range(1, n_characteristics):
-        theta = i * theta_max / (n_characteristics - 1)
+        theta = theta_head + i * (theta_tail - theta_head) / (n_characteristics - 1)
         nu = theta
         
         M_char = inverse_PM(nu, gamma)
@@ -531,7 +534,7 @@ def analyze_nozzle(h6s, P5, T5, M5, depth):
     
     c_plus_chars = []
     
-    # Simplified MOC propagation
+    # Layer by Layer
     for layer in range(len(c_minus_chars)):
         c_minus = c_minus_chars[layer]
         
@@ -543,6 +546,7 @@ def analyze_nozzle(h6s, P5, T5, M5, depth):
         c_minus['path'].append((x_centerline, y_centerline))
         c_minus['properties'].append(c_minus['properties'][-1].copy())
         
+        # Center Line Interactions
         K_minus_at_centerline = c_minus['K_minus']
         theta_centerline = 0
         nu_centerline = K_minus_at_centerline - theta_centerline
@@ -608,16 +612,57 @@ def analyze_nozzle(h6s, P5, T5, M5, depth):
             if j == layer + 1:
                 c_minus_centerline_angle = c_minus_next['char_angle']
         
-        # Store characteristic (wall point will be determined by h6s)
+        # Extend C+ to hit the given wall
         x_last, y_last = c_plus_path[-1]
+        tan_plus = np.tan(c_plus_angle)
+        
+        # Find intersection with wall segments
+        x_wall_hit = None
+        y_wall_hit = None
+        
+        for i in range(len(x6s) - 1):
+            x1, x2 = x6s[i], x6s[i+1]
+            y1, y2 = h6s[i], h6s[i+1]
+            
+            if x2 < x_last:
+                continue
+            
+            if abs(x2 - x1) < 1e-9:
+                continue
+            
+            tan_wall = (y2 - y1) / (x2 - x1)
+            
+            if abs(tan_plus - tan_wall) < 1e-6:
+                continue
+            
+            x_int = (y1 - y_last + tan_plus*x_last - tan_wall*x1) / (tan_plus - tan_wall)
+            
+            if x_int >= x1 and x_int <= x2 and x_int > x_last:
+                y_int = y_last + tan_plus * (x_int - x_last)
+                y_wall_check = y1 + tan_wall * (x_int - x1)
+                
+                if abs(y_int - y_wall_check) < 0.1:
+                    if x_wall_hit is None or x_int < x_wall_hit:
+                        x_wall_hit = x_int
+                        y_wall_hit = y_int
+        
+        if x_wall_hit is not None:
+            c_plus_path.append((x_wall_hit, y_wall_hit))
+            c_plus_properties.append(c_plus_properties[-1].copy())
+        
         c_plus_chars.append({
             'path': c_plus_path,
             'properties': c_plus_properties
         })
     
-    # Create uniform x-spacing
-    x_uniform = np.linspace(0, max([p[0] for char in c_plus_chars for p in char['path']]), len(h6s))
-    wall_y_interp = h6s
+    # Create uniform x-spacing across nozzle
+    x_max_moc = max([p[0] for char in c_plus_chars for p in char['path']])
+    x_min_moc = min([p[0] for char in c_plus_chars for p in char['path']])
+    n_samples = len(x6s)
+    x_uniform = np.linspace(x_min_moc, x_max_moc, n_samples)
+    
+    # Interpolate wall position at each x
+    wall_y_interp = np.interp(x_uniform, x6s, h6s)
     
     # Initialize lists
     M_mass_avg = []
@@ -740,12 +785,12 @@ def analyze_nozzle(h6s, P5, T5, M5, depth):
         M_mass_avg.append(M_mass_sum / rho_u_sum)
         p_mass_avg.append(P0 * (p_mass_sum / rho_u_sum))
         T_mass_avg.append(T0 * (T_mass_sum / rho_u_sum))
-
+    
     Ms = np.array(M_mass_avg)
     Ps = np.array(p_mass_avg)
     Ts = np.array(T_mass_avg)
 
-    return Ps, Ts, Ms
+    return Ps, Ts, Ms, c_plus_chars, c_minus_chars
 
 if __name__ == "__main__":
     P4 = 200000
@@ -775,7 +820,7 @@ if __name__ == "__main__":
     # Nozzle section (5 -> 6)
     P_exit = 9112.32
 
-    P_nozzle, T_nozzle, M_nozzle, m_dot, A_nozzle, h_nozzle, x_nozzle = design_nozzle(P5, T5, M5, m_dot, P_exit, depth)
+    P_nozzle, T_nozzle, M_nozzle, m_dot, A_nozzle, h_nozzle, x_nozzle, c_plus_nozzle, c_minus_nozzle = design_nozzle(P5, T5, M5, m_dot, P_exit, depth)
 
     P6 = P_nozzle[-1]
     T6 = T_nozzle[-1]
@@ -854,23 +899,54 @@ if __name__ == "__main__":
     plt.axis('equal')
     plt.show()
 
-    # Off-Design Quasi 1-D Analysis
+    # MOC Analysis
     P5 = 90000.82689383549
     T5 = 1300
     M5 = 1
 
-    Ps, Ts, Ms = analyze_nozzle(h_nozzle, P5, T5, M5, depth)
+    Ps, Ts, Ms, c_plus_chars, c_minus_chars = analyze_nozzle(x_nozzle, h_nozzle, P5, T5, M5, depth)
 
-    print("Off-Design Quasi 1-D Analysis")
+    print("On-Design MOC Analysis")
     print(f"P6 = {Ps[-1]} Pa")
     print(f"T6 = {Ts[-1]} K")
     print(f"M6 = {Ms[-1]}")
+
+    # Plot characteristics and nozzle geometry
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    # Plot C- characteristics (red)
+    for c_minus in c_minus_chars:
+        path = np.array(c_minus['path'])
+        ax.plot(path[:, 0], path[:, 1], 'r-', alpha=0.3, linewidth=0.5)
+        ax.plot(path[:, 0], -path[:, 1], 'r-', alpha=0.3, linewidth=0.5)
+    
+    # Plot C+ characteristics (blue)
+    for c_plus in c_plus_chars:
+        path = np.array(c_plus['path'])
+        ax.plot(path[:, 0], path[:, 1], 'b-', alpha=0.3, linewidth=0.5)
+        ax.plot(path[:, 0], -path[:, 1], 'b-', alpha=0.3, linewidth=0.5)
+    
+    # Plot nozzle wall (green)
+    ax.plot(x_nozzle, h_nozzle, 'g-', linewidth=3, label='Nozzle Wall')
+    ax.plot(x_nozzle, -h_nozzle, 'g-', linewidth=3)
+    
+    # Plot centerline
+    ax.axhline(y=0, color='k', linestyle='--', linewidth=1, alpha=0.5, label='Centerline')
+    
+    ax.set_xlabel('x (m)', fontsize=12)
+    ax.set_ylabel('y (m)', fontsize=12)
+    ax.set_title('MOC Characteristic Network and Nozzle Geometry', fontsize=14)
+    ax.legend(fontsize=10)
+    ax.grid(True, alpha=0.3)
+    ax.axis('equal')
+    plt.tight_layout()
+    plt.show()
 
     plt.figure()
     plt.plot(x_nozzle, Ps, linewidth=2)
     plt.xlabel('x (m)')
     plt.ylabel('P (Pa)')
-    plt.title('Off-Design Quasi 1-D Analysis: Pressure')
+    plt.title('On-Design MOC Analysis: Pressure')
     plt.grid(True)
     plt.show()
 
@@ -878,7 +954,7 @@ if __name__ == "__main__":
     plt.plot(x_nozzle, Ts, linewidth=2)
     plt.xlabel('x (m)')
     plt.ylabel('T (K)')
-    plt.title('Off-Design Quasi 1-D Analysis: Temperature')
+    plt.title('On-Design MOC Analysis: Temperature')
     plt.grid(True)
     plt.show()
 
@@ -886,6 +962,6 @@ if __name__ == "__main__":
     plt.plot(x_nozzle, Ms, linewidth=2)
     plt.xlabel('x (m)')
     plt.ylabel('M')
-    plt.title('Off-Design Quasi 1-D Analysis: Mach Number')
+    plt.title('On-Design MOC Analysis: Mach Number')
     plt.grid(True)
     plt.show()
