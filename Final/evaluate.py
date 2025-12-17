@@ -62,15 +62,16 @@ for r in results:
     print(f"Running {M_in}")
 
     # Inlet
-    P_inlet, T_inlet, _, M_inlet = inlet.get_1d_profiles(inlet_xs, P_atm, T_atm, M_in)
-    test = P0_P(M_inlet, gamma)
-    print(test)
+    P_inlet, T_inlet, _, M_inlet, P0_inlet, T0_inlet, s_inlet = inlet.get_1d_profiles(inlet_xs, P_atm, T_atm, M_in)
     r["xs"].extend(inlet_xs)
     r["Ms"].extend(M_inlet)
     r["Ps"].extend(P_inlet)
     r["Ts"].extend(T_inlet)
-    r["P0s"].extend(P_inlet * P0_P(M_inlet, gamma))
-    r["T0s"].extend(T_inlet * T0_T(M_inlet, gamma))
+    r["P0s"].extend(P0_inlet)
+    r["T0s"].extend(T0_inlet)
+    r["Ss"].extend(s_inlet)
+    # r["P0s"].extend(P_inlet * P0_P(M_inlet, gamma))
+    # r["T0s"].extend(T_inlet * T0_T(M_inlet, gamma))
     M_normal, P_normal, T_normal, _, _, _ = inlet.output_properties(P_atm, T_atm, M_in)
     r["xs"].append(r["xs"][-1])
     r["Ms"].append(M_normal)
@@ -136,11 +137,19 @@ for r in results:
 # -------------------------------------------------------------
 # ENTROPY
 # -------------------------------------------------------------
+def extend_with_nans(arr, target_len):
+    arr = np.asarray(arr, dtype=float)
+    if len(arr) >= target_len:
+        return arr
+    return np.pad(arr, (0, target_len - len(arr)), constant_values=np.nan)
+
 for r in results:
-    r["Ss"] = np.full(len(r["Ts"]), np.nan)
-    r["Ss"][0] = 0 # Start here
+    # example
+    r["Ss"] = extend_with_nans(r["Ss"], len(r["Ts"]))
     for i, _ in enumerate(r["Ps"]):
         if i== 0:
+            pass
+        elif not np.isnan(r["Ss"][i]):
             pass
         else:
             delta_s = C_p_air * np.log(r["Ts"][i] / r["Ts"][i-1]) - R_air * np.log(r["Ps"][i] / r["Ps"][i-1])
@@ -265,6 +274,7 @@ plt.savefig('Final/results/T-s.png')
 plt.figure()
 for r in results[::stride]:
     plt.plot(r["xs"], r["Ss"]/1000, label=f"M_in = {r['M_in']:.2f}")
+    print(f"Increase in s for M_in{r['M_in']:.2f} is: {(r["Ss"][-1] - r["Ss"][0]) / 1000} kJ/kg K")
 plt.xlabel("x [m]")
 plt.ylabel("s [kJ/kg K]")
 plt.legend()
