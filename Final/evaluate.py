@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0,os.fspath(Path(__file__).parents[1]))
 
 from Tools.misc_functions import get_speed_of_sound
-from Tools.constants import R_air, gamma_air
+from Tools.constants import R_air, gamma_air, C_p_air
 from Tools.isentropic import *
 
 from inlet import inlet as Inlet
@@ -63,8 +63,8 @@ for r in results:
 
     # Inlet
     P_inlet, T_inlet, _, M_inlet = inlet.get_1d_profiles(inlet_xs, P_atm, T_atm, M_in)
-    P0_inlet = P_inlet * P0_P(M_inlet, gamma)
-    T0_inlet = T_inlet * T0_T(M_inlet, gamma)
+    test = P0_P(M_inlet, gamma)
+    print(test)
     r["xs"].extend(inlet_xs)
     r["Ms"].extend(M_inlet)
     r["Ps"].extend(P_inlet)
@@ -132,6 +132,19 @@ for r in results:
     r["Ts"].extend(noz_Ts)
     r["P0s"].extend(noz_Ps * P0_P(noz_Ms, gamma))
     r["T0s"].extend(noz_Ts * T0_T(noz_Ms, gamma))
+
+# -------------------------------------------------------------
+# ENTROPY
+# -------------------------------------------------------------
+for r in results:
+    r["Ss"] = np.full(len(r["Ts"]), np.nan)
+    r["Ss"][0] = 0 # Start here
+    for i, _ in enumerate(r["Ps"]):
+        if i== 0:
+            pass
+        else:
+            delta_s = C_p_air * np.log(r["Ts"][i] / r["Ts"][i-1]) - R_air * np.log(r["Ps"][i] / r["Ps"][i-1])
+            r["Ss"][i] = delta_s + r["Ss"][i-1]
 
 # -------------------------------------------------------------
 # THRUST
@@ -237,5 +250,27 @@ plt.grid(True)
 plt.tight_layout()
 plt.savefig('Final/results/P-v.png')
 
+plt.figure()
+for r in results[::stride]:
+    T_vals = np.array(r["Ts"])
+    s_vals = np.array(r["Ss"]) / 1000
+    plt.plot(s_vals, T_vals, label=f"M_in = {r['M_in']:.2f}")
+plt.xlabel("s [kJ/kg K]")
+plt.ylabel("T [K]")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig('Final/results/T-s.png')
+
+plt.figure()
+for r in results[::stride]:
+    plt.plot(r["xs"], r["Ss"]/1000, label=f"M_in = {r['M_in']:.2f}")
+plt.xlabel("x [m]")
+plt.ylabel("s [kJ/kg K]")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig('Final/results/entropy_profiles.png')
+plt.show()
 
 
