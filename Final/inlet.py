@@ -204,7 +204,7 @@ class inlet:
     
     def compute_flow_fields(self, xs, ys, P_in, T_in, M_in):
         """
-        Compute P, T, rho, M fields at a grid with coordinates xs, ys
+        Compute P, T, rho, M, P0, T0, s fields at a grid with coordinates xs, ys
         """
         rho_in = P_in/(R_air*T_in)
         
@@ -287,9 +287,11 @@ class inlet:
     
         # Build meshes and mask down to y <= height
         X, Y = np.meshgrid(xs, ys, indexing='xy')
+        
+        a_grid = get_speed_of_sound(T_grid)
     
         # Mass flux weight (simple and consistent)
-        w = rho_grid * M_grid
+        w = rho_grid * M_grid * a_grid
     
         # Prepare output arrays
         P_profile   = np.zeros_like(xs, dtype=float)
@@ -311,6 +313,8 @@ class inlet:
             # mask out NaNs (walls)
             valid = ~np.isnan(w_col)
             wsum = np.sum(w_col[valid])
+            
+            # print(wsum)
 
             if wsum == 0:
                 # All blocked by walls → return NaN
@@ -340,7 +344,7 @@ if __name__ == "__main__":
         print(f"{label}: {val}")
     
     inlet_width = np.sqrt((i.xs[-1]-i.x_lip)**2+(i.ys[-1]-i.y_lip)**2)
-    M, P, T, _, _, _ = i.output_properties(9112.32, 216.65, 3.25)
+    M, P, T, _, _, _ = i.output_properties(9112.32, 216.65, 2.75)
     rho = P/(R_air*T)
     a = get_speed_of_sound(T)
     print(f"m_dot at throat = {M*a*rho*inlet_width*1}")
@@ -362,6 +366,6 @@ if __name__ == "__main__":
 
     P_profile, T_profile, rho_profile, M_profile = i.get_1d_profiles(xs, 9112.32, 216.65, 3.25)
     
-    plt.plot(xs, M_profile)
+    plt.plot(xs, P_profile)
     plt.show()
     
