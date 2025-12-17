@@ -70,8 +70,6 @@ diffuser_df.to_pickle('Final/profiles/diffuser_df.pkl')
 P3, M3 = flameholder(P2, M2)
 T3 = T2
 
-# might need to design combustor for lowest mach to avoid choke. or we can just guess-n-check.
-
 combustor_dict = solve_combustor_length(M3, P3, T3, m_dot, width, m_dot_fuel)
 if combustor_dict["is_choked"]:
     print(f"Choked at {M_atm=}, {m_dot_fuel=}")
@@ -81,7 +79,6 @@ M4 = combustor_dict["M_out"]
 with open('Final/profiles/combustor_dict.pkl', 'wb') as f:
     pickle.dump(combustor_dict, f)
 
-# # need to design converging section for lowest mach operation s.t. we always get to M=1 before nozzle
 # M4_lowest, P4_lowest, T4_lowest = evaluate_up_to_converger(M_lowest, inlet_design_params_dict, diffuser_df, combustor_dict)
 
 P5s, T5s, M5s, _, A5s, h5s, x5s = design_converging_section(P4, T4, M4, m_dot, converging_length, width)
