@@ -202,142 +202,280 @@ class inlet:
         
         return rho_inlet*(a_inlet*M_inlet)**2*throat_area*np.cos(throat_angle)        
     
+    # def compute_flow_fields(self, xs, ys, P_in, T_in, M_in):
+    #     """
+    #     Compute P, T, rho, M, P0, T0, s fields at a grid with coordinates xs, ys
+    #     """
+    #     rho_in = P_in/(R_air*T_in)
+        
+    #     # Build mesh
+    #     X, Y = np.meshgrid(xs, ys, indexing='xy')
+
+    #     # Initialize ratio grids
+    #     P_ratio = np.ones_like(X, dtype=float)
+    #     T_ratio = np.ones_like(X, dtype=float)
+    #     rho_ratio = np.ones_like(X, dtype=float)
+    #     M_grid = np.full_like(X, M_in, dtype=float)
+
+    #     M_current = M_in
+    #     n_shocks = len(self.turn_angles)
+
+    #     for i in range(n_shocks):
+    #         # Shock geometry
+    #         xi, yi = self.xs[i], self.ys[i]
+    #         theta  = self.turn_angles[i]
+
+    #         # Shock relations
+    #         beta, Pr, Tr, M_after, rhor = mach_function(M_current, self.gamma, theta)
+    #         if i != 0:
+    #             beta += self.location_angles[i-1]
+
+    #         # Height of shock line at each X location
+    #         Y_line = line_height(X, xi, yi, beta)
+
+    #         # Downstream region (flip inequality if your geometry uses the opposite convention)
+    #         mask = (Y < Y_line)
+
+    #         # Apply ratios to the downstream region
+    #         P_ratio[mask] *= Pr
+    #         T_ratio[mask] *= Tr
+    #         rho_ratio[mask] *= rhor
+    #         M_grid[mask] = M_after
+
+    #         # New incoming Mach for next shock
+    #         M_current = M_after
+
+    #     # Convert ratios → actual values
+    #     P_grid   = P_in   * P_ratio
+    #     T_grid   = T_in   * T_ratio
+    #     rho_grid = rho_in * rho_ratio
+        
+    #     for i in range(len(self.xs) - 1):
+    #         x1, y1 = self.xs[i],   self.ys[i]
+    #         x2, y2 = self.xs[i+1], self.ys[i+1]
+
+    #         # Compute wall angle
+    #         angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
+
+    #         # Wall y-value at each X
+    #         Y_wall = line_height(X, x1, y1, angle)
+
+    #         # Finite segment limits
+    #         x_min = min(x1, x2)
+    #         x_max = max(x1, x2)
+
+    #         # Mask only points within segment span and below wall
+    #         wall_mask = (X >= x_min) & (X <= x_max) & (Y < Y_wall)
+
+    #         # Set masked regions to NaN
+    #         P_grid[wall_mask]   = np.nan
+    #         T_grid[wall_mask]   = np.nan
+    #         rho_grid[wall_mask] = np.nan
+    #         M_grid[wall_mask]   = np.nan
+
+    #     return P_grid, T_grid, rho_grid, M_grid
+            
+
+    # def get_1d_profiles(self, xs, P_in, T_in, M_in):
+    #     """
+    #     Compute mass-flux-averaged profiles P(x), T(x), rho(x), M(x)
+    #     for given x locations.
+    #     """
+    #     ys = np.linspace(0, self.y_lip, num=200)
+    #     # First compute the full 2D flow field
+    #     P_grid, T_grid, rho_grid, M_grid = self.compute_flow_fields(xs, ys, P_in, T_in, M_in)
+    
+    #     # Build meshes and mask down to y <= height
+    #     X, Y = np.meshgrid(xs, ys, indexing='xy')
+        
+    #     a_grid = get_speed_of_sound(T_grid)
+    
+    #     # Mass flux weight (simple and consistent)
+    #     w = rho_grid * M_grid * a_grid
+    
+    #     # Prepare output arrays
+    #     P_profile   = np.zeros_like(xs, dtype=float)
+    #     T_profile   = np.zeros_like(xs, dtype=float)
+    #     rho_profile = np.zeros_like(xs, dtype=float)
+    #     M_profile   = np.zeros_like(xs, dtype=float)
+    
+    #     # For each requested x value, find nearest column in compute grid
+    #     for j in range(len(xs)):
+    #         if xs[j] > self.x_lip:
+    #             P_temp, T_temp, rho_temp, M_temp = self.get_1d_profiles([self.x_lip], P_in, T_in, M_in)
+    #             P_profile[j]   = P_temp[0]
+    #             T_profile[j]   = T_temp[0]
+    #             rho_profile[j] = rho_temp[0]
+    #             M_profile[j]   = M_temp[0]
+    #         else:
+    #             # find nearest x index
+        
+    #             # extract the vertical column
+    #             w_col   = w[:, j]
+    #             P_col   = P_grid[:, j]
+    #             T_col   = T_grid[:, j]
+    #             rho_col = rho_grid[:, j]
+    #             M_col   = M_grid[:, j]
+        
+    #             # mask out NaNs (walls)
+    #             valid = ~np.isnan(w_col)
+    #             wsum = np.sum(w_col[valid])
+                
+    #             # print(wsum)
+    
+    #             if wsum == 0:
+    #                 # All blocked by walls → return NaN
+    #                 P_profile[j]   = np.nan
+    #                 T_profile[j]   = np.nan
+    #                 rho_profile[j] = np.nan
+    #                 M_profile[j]   = np.nan
+    #                 continue
+    
+    #             # Mass-flux-weighted averages
+    #             P_profile[j]   = np.sum(P_col[valid]   * w_col[valid]) / wsum
+    #             T_profile[j]   = np.sum(T_col[valid]   * w_col[valid]) / wsum
+    #             rho_profile[j] = np.sum(rho_col[valid] * w_col[valid]) / wsum
+    #             M_profile[j]   = np.sum(M_col[valid]   * w_col[valid]) / wsum
+    
+    #     return P_profile, T_profile, rho_profile, M_profile
+    
     def compute_flow_fields(self, xs, ys, P_in, T_in, M_in):
         """
         Compute P, T, rho, M, P0, T0, s fields at a grid with coordinates xs, ys
         """
-        rho_in = P_in/(R_air*T_in)
-        
+        rho_in = P_in / (R_air * T_in)
+        cp = self.gamma * R_air / (self.gamma - 1)
+    
         # Build mesh
         X, Y = np.meshgrid(xs, ys, indexing='xy')
-
+    
         # Initialize ratio grids
-        P_ratio = np.ones_like(X, dtype=float)
-        T_ratio = np.ones_like(X, dtype=float)
+        P_ratio   = np.ones_like(X, dtype=float)
+        T_ratio   = np.ones_like(X, dtype=float)
         rho_ratio = np.ones_like(X, dtype=float)
-        M_grid = np.full_like(X, M_in, dtype=float)
-
+        M_grid    = np.full_like(X, M_in, dtype=float)
+    
         M_current = M_in
         n_shocks = len(self.turn_angles)
-
+    
         for i in range(n_shocks):
             # Shock geometry
             xi, yi = self.xs[i], self.ys[i]
             theta  = self.turn_angles[i]
-
+    
             # Shock relations
             beta, Pr, Tr, M_after, rhor = mach_function(M_current, self.gamma, theta)
             if i != 0:
                 beta += self.location_angles[i-1]
-
-            # Height of shock line at each X location
+    
+            # Shock line
             Y_line = line_height(X, xi, yi, beta)
-
-            # Downstream region (flip inequality if your geometry uses the opposite convention)
+    
+            # Downstream region
             mask = (Y < Y_line)
-
-            # Apply ratios to the downstream region
-            P_ratio[mask] *= Pr
-            T_ratio[mask] *= Tr
+    
+            # Apply jump conditions
+            P_ratio[mask]   *= Pr
+            T_ratio[mask]   *= Tr
             rho_ratio[mask] *= rhor
-            M_grid[mask] = M_after
-
-            # New incoming Mach for next shock
+            M_grid[mask]     = M_after
+    
             M_current = M_after
-
-        # Convert ratios → actual values
+    
+        # Primitive variables
         P_grid   = P_in   * P_ratio
         T_grid   = T_in   * T_ratio
         rho_grid = rho_in * rho_ratio
-        
+    
+        # --- Stagnation quantities ---
+        P0_grid = P_grid * P0_P(M_grid, self.gamma)
+        T0_grid = T_grid * T0_T(M_grid, self.gamma)
+    
+        # --- Entropy relative to freestream ---
+        s_grid = cp * np.log(T_grid / T_in) - R_air * np.log(P_grid / P_in)
+    
+        # Apply wall masking
         for i in range(len(self.xs) - 1):
             x1, y1 = self.xs[i],   self.ys[i]
             x2, y2 = self.xs[i+1], self.ys[i+1]
-
-            # Compute wall angle
+    
             angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
-
-            # Wall y-value at each X
             Y_wall = line_height(X, x1, y1, angle)
-
-            # Finite segment limits
+    
             x_min = min(x1, x2)
             x_max = max(x1, x2)
-
-            # Mask only points within segment span and below wall
+    
             wall_mask = (X >= x_min) & (X <= x_max) & (Y < Y_wall)
-
-            # Set masked regions to NaN
+    
             P_grid[wall_mask]   = np.nan
             T_grid[wall_mask]   = np.nan
             rho_grid[wall_mask] = np.nan
             M_grid[wall_mask]   = np.nan
-
-        return P_grid, T_grid, rho_grid, M_grid
-            
-
+            P0_grid[wall_mask]  = np.nan
+            T0_grid[wall_mask]  = np.nan
+            s_grid[wall_mask]   = np.nan
+    
+        return P_grid, T_grid, rho_grid, M_grid, P0_grid, T0_grid, s_grid
+    
     def get_1d_profiles(self, xs, P_in, T_in, M_in):
         """
-        Compute mass-flux-averaged profiles P(x), T(x), rho(x), M(x)
-        for given x locations.
+        Compute mass-flux-averaged profiles P(x), T(x), rho(x), M(x),
+        P0(x), T0(x), s(x)
         """
         ys = np.linspace(0, self.y_lip, num=200)
-        # First compute the full 2D flow field
-        P_grid, T_grid, rho_grid, M_grid = self.compute_flow_fields(xs, ys, P_in, T_in, M_in)
     
-        # Build meshes and mask down to y <= height
+        (P_grid, T_grid, rho_grid, M_grid,
+         P0_grid, T0_grid, s_grid) = self.compute_flow_fields(
+            xs, ys, P_in, T_in, M_in
+        )
+    
         X, Y = np.meshgrid(xs, ys, indexing='xy')
-        
         a_grid = get_speed_of_sound(T_grid)
     
-        # Mass flux weight (simple and consistent)
+        # Mass flux weights
         w = rho_grid * M_grid * a_grid
     
-        # Prepare output arrays
-        P_profile   = np.zeros_like(xs, dtype=float)
-        T_profile   = np.zeros_like(xs, dtype=float)
-        rho_profile = np.zeros_like(xs, dtype=float)
-        M_profile   = np.zeros_like(xs, dtype=float)
+        # Output arrays
+        P_profile   = np.zeros_like(xs)
+        T_profile   = np.zeros_like(xs)
+        rho_profile = np.zeros_like(xs)
+        M_profile   = np.zeros_like(xs)
+        P0_profile  = np.zeros_like(xs)
+        T0_profile  = np.zeros_like(xs)
+        s_profile   = np.zeros_like(xs)
     
-        # For each requested x value, find nearest column in compute grid
         for j in range(len(xs)):
             if xs[j] > self.x_lip:
-                P_temp, T_temp, rho_temp, M_temp = self.get_1d_profiles([self.x_lip], P_in, T_in, M_in)
-                P_profile[j]   = P_temp[0]
-                T_profile[j]   = T_temp[0]
-                rho_profile[j] = rho_temp[0]
-                M_profile[j]   = M_temp[0]
-            else:
-                # find nearest x index
-        
-                # extract the vertical column
-                w_col   = w[:, j]
-                P_col   = P_grid[:, j]
-                T_col   = T_grid[:, j]
-                rho_col = rho_grid[:, j]
-                M_col   = M_grid[:, j]
-        
-                # mask out NaNs (walls)
-                valid = ~np.isnan(w_col)
-                wsum = np.sum(w_col[valid])
-                
-                # print(wsum)
+                vals = self.get_1d_profiles([self.x_lip], P_in, T_in, M_in)
+                (P_profile[j], T_profile[j], rho_profile[j],
+                 M_profile[j], P0_profile[j],
+                 T0_profile[j], s_profile[j]) = [v[0] for v in vals]
+                continue
     
-                if wsum == 0:
-                    # All blocked by walls → return NaN
-                    P_profile[j]   = np.nan
-                    T_profile[j]   = np.nan
-                    rho_profile[j] = np.nan
-                    M_profile[j]   = np.nan
-                    continue
+            w_col = w[:, j]
+            valid = ~np.isnan(w_col)
+            wsum = np.sum(w_col[valid])
     
-                # Mass-flux-weighted averages
-                P_profile[j]   = np.sum(P_col[valid]   * w_col[valid]) / wsum
-                T_profile[j]   = np.sum(T_col[valid]   * w_col[valid]) / wsum
-                rho_profile[j] = np.sum(rho_col[valid] * w_col[valid]) / wsum
-                M_profile[j]   = np.sum(M_col[valid]   * w_col[valid]) / wsum
+            if wsum == 0:
+                P_profile[j]   = np.nan
+                T_profile[j]   = np.nan
+                rho_profile[j] = np.nan
+                M_profile[j]   = np.nan
+                P0_profile[j]  = np.nan
+                T0_profile[j]  = np.nan
+                s_profile[j]   = np.nan
+                continue
     
-        return P_profile, T_profile, rho_profile, M_profile
+            P_profile[j]   = np.sum(P_grid[:, j][valid]   * w_col[valid]) / wsum
+            T_profile[j]   = np.sum(T_grid[:, j][valid]   * w_col[valid]) / wsum
+            rho_profile[j] = np.sum(rho_grid[:, j][valid] * w_col[valid]) / wsum
+            M_profile[j]   = np.sum(M_grid[:, j][valid]   * w_col[valid]) / wsum
+            P0_profile[j]  = np.sum(P0_grid[:, j][valid]  * w_col[valid]) / wsum
+            T0_profile[j]  = np.sum(T0_grid[:, j][valid]  * w_col[valid]) / wsum
+            s_profile[j]   = np.sum(s_grid[:, j][valid]   * w_col[valid]) / wsum
+    
+        return (P_profile, T_profile, rho_profile, M_profile,
+                P0_profile, T0_profile, s_profile)
         
             
 if __name__ == "__main__":
@@ -360,19 +498,24 @@ if __name__ == "__main__":
     
     xs = np.linspace(0, 0.02, 500)
     ys = np.linspace(0, i.y_lip, 500)
-    P_grid, T_grid, rho_grid, M_grid = i.compute_flow_fields(xs, ys, 9112.32, 216.65, 2.75)
+    P_grid, T_grid, rho_grid, M_grid, P0_grid, T0_grid, s_grid = i.compute_flow_fields(xs, ys, 9112.32, 216.65, 2.75)
 
     # Create mesh for plotting
-    X, Y = np.meshgrid(xs, ys, indexing='xy')   
+    X, Y = np.meshgrid(xs, ys, indexing='xy')
     
-    # Plot all fields
-    plot_field(X, Y, P_grid,   "Pressure Field",       "P")
-    plot_field(X, Y, T_grid,   "Temperature Field",    "T")
-    plot_field(X, Y, rho_grid, "Density Field",        "rho")
-    plot_field(X, Y, M_grid,   "Mach Number Field",    "M")
+    # Plot primitive fields
+    plot_field(X, Y, P_grid,   "Pressure Field",        "P")
+    plot_field(X, Y, T_grid,   "Temperature Field",     "T")
+    plot_field(X, Y, rho_grid, "Density Field",         "rho")
+    plot_field(X, Y, M_grid,   "Mach Number Field",     "M")
+    
+    # Plot stagnation + entropy fields
+    plot_field(X, Y, P0_grid,  "Stagnation Pressure Field",    "P₀")
+    plot_field(X, Y, T0_grid,  "Stagnation Temperature Field", "T₀")
+    plot_field(X, Y, s_grid,   "Entropy Field (Δs)",           "s")
+    
+    (P_profile, T_profile, rho_profile, M_profile, P0_profile, T0_profile, s_profile) =  i.get_1d_profiles(xs, 9112.32, 216.65, 3.25)
 
-    P_profile, T_profile, rho_profile, M_profile = i.get_1d_profiles(xs, 9112.32, 216.65, 3.25)
-    
-    plt.plot(xs, P_profile)
+    plt.plot(xs, s_profile)
     plt.show()
     
