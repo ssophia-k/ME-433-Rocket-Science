@@ -154,6 +154,7 @@ plt.title("Ramjet Profile")
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
+plt.savefig('Final/results/total_profiles.png')
 plt.show()
 
 # Calculate Thrust
