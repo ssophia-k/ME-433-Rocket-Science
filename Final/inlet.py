@@ -301,34 +301,41 @@ class inlet:
     
         # For each requested x value, find nearest column in compute grid
         for j in range(len(xs)):
-            # find nearest x index
+            if xs[j] > self.x_lip:
+                P_temp, T_temp, rho_temp, M_temp = self.get_1d_profiles([self.x_lip], P_in, T_in, M_in)
+                P_profile[j]   = P_temp[0]
+                T_profile[j]   = T_temp[0]
+                rho_profile[j] = rho_temp[0]
+                M_profile[j]   = M_temp[0]
+            else:
+                # find nearest x index
+        
+                # extract the vertical column
+                w_col   = w[:, j]
+                P_col   = P_grid[:, j]
+                T_col   = T_grid[:, j]
+                rho_col = rho_grid[:, j]
+                M_col   = M_grid[:, j]
+        
+                # mask out NaNs (walls)
+                valid = ~np.isnan(w_col)
+                wsum = np.sum(w_col[valid])
+                
+                # print(wsum)
     
-            # extract the vertical column
-            w_col   = w[:, j]
-            P_col   = P_grid[:, j]
-            T_col   = T_grid[:, j]
-            rho_col = rho_grid[:, j]
-            M_col   = M_grid[:, j]
+                if wsum == 0:
+                    # All blocked by walls → return NaN
+                    P_profile[j]   = np.nan
+                    T_profile[j]   = np.nan
+                    rho_profile[j] = np.nan
+                    M_profile[j]   = np.nan
+                    continue
     
-            # mask out NaNs (walls)
-            valid = ~np.isnan(w_col)
-            wsum = np.sum(w_col[valid])
-            
-            # print(wsum)
-
-            if wsum == 0:
-                # All blocked by walls → return NaN
-                P_profile[j]   = np.nan
-                T_profile[j]   = np.nan
-                rho_profile[j] = np.nan
-                M_profile[j]   = np.nan
-                continue
-
-            # Mass-flux-weighted averages
-            P_profile[j]   = np.sum(P_col[valid]   * w_col[valid]) / wsum
-            T_profile[j]   = np.sum(T_col[valid]   * w_col[valid]) / wsum
-            rho_profile[j] = np.sum(rho_col[valid] * w_col[valid]) / wsum
-            M_profile[j]   = np.sum(M_col[valid]   * w_col[valid]) / wsum
+                # Mass-flux-weighted averages
+                P_profile[j]   = np.sum(P_col[valid]   * w_col[valid]) / wsum
+                T_profile[j]   = np.sum(T_col[valid]   * w_col[valid]) / wsum
+                rho_profile[j] = np.sum(rho_col[valid] * w_col[valid]) / wsum
+                M_profile[j]   = np.sum(M_col[valid]   * w_col[valid]) / wsum
     
         return P_profile, T_profile, rho_profile, M_profile
         
@@ -353,7 +360,7 @@ if __name__ == "__main__":
     
     xs = np.linspace(0, 0.02, 500)
     ys = np.linspace(0, i.y_lip, 500)
-    P_grid, T_grid, rho_grid, M_grid = i.compute_flow_fields(xs, ys, 9112.32, 216.65, 3.25)
+    P_grid, T_grid, rho_grid, M_grid = i.compute_flow_fields(xs, ys, 9112.32, 216.65, 2.75)
 
     # Create mesh for plotting
     X, Y = np.meshgrid(xs, ys, indexing='xy')   
