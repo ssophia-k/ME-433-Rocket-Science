@@ -17,12 +17,13 @@ from nozzle import design_nozzle
 from thrust_calc import calculate_thrust
 from plot_top import plot_top
 from plot_bottom import plot_bottom
+from helper import evaluate_up_to_combustor
 
 
 # Atmosphere:
 P_atm = 9112.32  # Pa
 T_atm = 216.65  # K
-M_max = 2.75 #3.25
+M_max = 3.25
 M_atm = M_max
 M_lowest = 2.75
 
@@ -51,7 +52,7 @@ diffuser_length = 0.1  # length of diffuser, m
 Resolution = 100
 
 # combustor:
-m_dot_fuel = 0.1  # kg/s
+m_dot_fuel = 0.25  # kg/s
 
 # Converging section:
 converging_length = 0.1  # m
@@ -70,7 +71,13 @@ diffuser_df.to_pickle('Final/profiles/diffuser_df.pkl')
 P3, M3 = flameholder(P2, M2)
 T3 = T2
 
-combustor_dict = solve_combustor_length(M3, P3, T3, m_dot, width, m_dot_fuel)
+M3_lowest, P3_lowest, T3_lowest = evaluate_up_to_combustor(M_lowest, inlet_design_params_dict, diffuser_df)
+
+# M3_lowest= 0.10734810470681938
+# T3_lowest= 543.0814725758444
+# P3_lowest= 193995.7312814175
+
+combustor_dict = solve_combustor_length(M3_lowest, P3_lowest, T3_lowest, m_dot, width, m_dot_fuel)
 if combustor_dict["is_choked"]:
     print(f"Choked at {M_atm=}, {m_dot_fuel=}")
 P4 = combustor_dict["P_out"]

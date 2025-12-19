@@ -80,6 +80,11 @@ def plot_bottom(inlet, diffuser_df, combustor_dict, x5s, h5s, x6s, h6s):
         length_of_front = np.sqrt((inlet_points[0][0] - corner_point[0])**2 + (inlet_points[0][1] - corner_point[1])**2)
         angle_of_front = np.rad2deg(np.arctan((inlet_points[0][1] - corner_point[1])/(inlet_points[0][0] - corner_point[0])))
         bottom_face.append(corner_point)
+    else:
+        corner_point = (diffuser_points[-1][0], top_face[-1][1])
+        length_of_front = np.sqrt((inlet_points[0][0] - corner_point[0])**2 + (inlet_points[0][1] - corner_point[1])**2)
+        angle_of_front = np.rad2deg(np.arctan((inlet_points[0][1] - corner_point[1])/(inlet_points[0][0] - corner_point[0])))
+        bottom_face.append(corner_point)
 
     bottom_face.append(top_face[-1])
 

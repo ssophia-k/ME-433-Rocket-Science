@@ -170,6 +170,18 @@ for r in results:
 avg_thrust = sum(r["Thrust"] for r in results) / len(results)
 print(f"Average Thrust: {avg_thrust} N")
 
+
+T_target = 672.9771706586896  # value you want to find
+Ts = results[-1]["Ts"]
+
+indices = [i for i, T in enumerate(Ts) if abs(T - T_target) <= 1e-6]
+print(indices)
+
+print (results[0]["Ms"][indices[0]])
+print (results[0]["Ts"][indices[0]])
+print (results[0]["Ps"][indices[0]])
+
+
 # -------------------------------------------------------------
 # PLOT ALL OUR RESULTS
 # -------------------------------------------------------------
@@ -247,6 +259,19 @@ plt.tight_layout()
 plt.savefig('Final/results/thrust_vs_mach.png')
 
 plt.figure()
+M_in_vals = [r["M_in"] for r in results]
+burn_time_vals = [r["fuel_info"]["burn_time_s"] for r in results]
+flow_time_vals = [r["fuel_info"]["flow_time_s"] for r in results]
+plt.plot(M_in_vals, burn_time_vals, label = "Burn time")
+plt.plot(M_in_vals, flow_time_vals, label = "Flow time")
+plt.xlabel("Mach number")
+plt.ylabel("Time [s]")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.savefig('Final/results/burn_or_flow_vs_mach.png')
+
+plt.figure()
 for r in results[::stride]:
     T_vals = np.array(r["Ts"])
     P_vals = np.array(r["Ps"])
@@ -281,6 +306,8 @@ plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.savefig('Final/results/entropy_profiles.png')
-plt.show()
 
-
+print(f"Minimum Thrust: {min(r['Thrust'] for r in results)} N")
+print(f"Maximum Thrust: {max(r['Thrust'] for r in results)} N")
+mean_thrust = sum(r["Thrust"] for r in results) / len(results)
+print(f"Mean Thrust: {mean_thrust} N")
