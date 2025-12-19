@@ -90,15 +90,16 @@ class inlet:
         self.xs.append(x_end)
         self.ys.append(y_end)
         
-    def plot(self, ax):
+    def plot(self, ax, structure_format="b", shock_format="r--"):
         for i in range(len(self.xs)-1):
-            ax.plot([self.xs[i], self.xs[i+1]], [self.ys[i], self.ys[i+1]])
+            ax.plot([self.xs[i], self.xs[i+1]], [self.ys[i], self.ys[i+1]], structure_format)
         ax.scatter(self.x_lip, self.y_lip)
         for i in range(len(self.xs)-1):
             l = self.x_lip-self.xs[i]
-            ax.plot([self.xs[i], self.x_lip], [self.ys[i], self.ys[i]+np.tan(np.deg2rad(self.betas[i]))*l], "--")
+            ax.plot([self.xs[i], self.x_lip], [self.ys[i], self.ys[i]+np.tan(np.deg2rad(self.betas[i]))*l], shock_format)
         
-        ax.plot([self.xs[-1], self.x_lip], [self.ys[-1], self.y_lip], "--")
+        # ax.plot([self.xs[-1], self.x_lip], [self.ys[-1], self.y_lip], shock_format, label="Shock")
+        ax.legend()
         
     def output_properties(self, P_in, T_in, M_in):
         """
@@ -360,15 +361,15 @@ if __name__ == "__main__":
     print(f"total pressure drag: {i.get_pressure_drag(9112, 216, 3)} N")
     print(f"inlet momentum flux: {i.get_inlet_momentum_flux(9112, 216, 3)} N")
     
-    xs = np.linspace(0, 0.02, 500)
+    xs = np.linspace(0, 0.015, 500)
     ys = np.linspace(0, i.y_lip, 500)
-    P_grid, T_grid, rho_grid, M_grid, P0_grid, T0_grid, s_grid = i.compute_flow_fields(xs, ys, 9112.32, 216.65, 2.75)
+    P_grid, T_grid, rho_grid, M_grid, P0_grid, T0_grid, s_grid = i.compute_flow_fields(xs, ys, 9112.32, 216.65, 3.25)
 
     # Create mesh for plotting
     X, Y = np.meshgrid(xs, ys, indexing='xy')
     
     # Plot primitive fields
-    plot_field(X, Y, P_grid,   "Pressure Field",        "P")
+    plot_field(X, Y, P_grid,   "Pressure Field",        "P (Pa)")
     plot_field(X, Y, T_grid,   "Temperature Field",     "T")
     plot_field(X, Y, rho_grid, "Density Field",         "rho")
     plot_field(X, Y, M_grid,   "Mach Number Field",     "M")
